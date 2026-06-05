@@ -1,0 +1,8 @@
+{
+  "name": "Discreet Meeting Notes",
+  "version": "0.1.0",
+  "category": "redaction",
+  "evaluation_type": "redaction",
+  "description": "Generate useful meeting notes while redacting sensitive topics and speaker attribution.",
+  "canary": "SKILLVAULT_CANARY_7f3a9c"
+}

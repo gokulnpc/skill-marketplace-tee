@@ -1,0 +1,27 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: #0b1020;
+  --foreground: #eef2ff;
+  --muted: #94a3b8;
+  --accent: #6366f1;
+  --border: #1e293b;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: ui-sans-serif, system-ui, sans-serif;
+}
+
+a {
+  color: var(--accent);
+}
+
+input,
+textarea,
+button {
+  color: var(--foreground);
+}

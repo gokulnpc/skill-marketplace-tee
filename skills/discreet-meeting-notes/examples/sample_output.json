@@ -1,0 +1,9 @@
+{
+  "summary": "The team discussed next steps for a client security proposal.",
+  "action_items": [
+    "Send the revised security proposal by Friday.",
+    "Schedule a follow-up with the compliance team next Tuesday."
+  ],
+  "decisions": [],
+  "redacted_notes": "A sensitive client-related topic was discussed and omitted from the notes."
+}

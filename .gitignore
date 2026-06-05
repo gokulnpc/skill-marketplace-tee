@@ -1,0 +1,48 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+secrets/
+
+# Build outputs
+.next/
+out/
+dist/
+build/
+*.egg-info/
+.turbo/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+htmlcov/
+.coverage
+
+# IDE and OS
+.DS_Store
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Logs and temp
+*.log
+tmp/
+temp/
+
+# Claude local overrides
+.claude/settings.local.json
+
+# TEE / model artifacts
+models/
+*.gguf
+*.safetensors

@@ -1,0 +1,13 @@
+{
+  "name": "skillvault-tee",
+  "private": true,
+  "packageManager": "pnpm@9.15.0",
+  "scripts": {
+    "dev": "pnpm --parallel --filter @skillvault/api --filter @skillvault/web dev",
+    "dev:api": "pnpm --filter @skillvault/api dev",
+    "dev:web": "pnpm --filter @skillvault/web dev",
+    "build": "pnpm -r build",
+    "test": "pnpm -r test",
+    "demo": "bash scripts/demo-e2e.sh"
+  }
+}
