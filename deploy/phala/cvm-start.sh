@@ -20,9 +20,10 @@ fi
 log "Upgrading pip and installing build tooling..."
 pip install --upgrade pip hatchling
 
-log "Installing SkillVault packages from ${REPO}@${REF}..."
-pip install --no-cache-dir "git+${REPO}@${REF}#subdirectory=services/model-server"
-pip install --no-cache-dir "tee-runner[dstack] @ git+${REPO}@${REF}#subdirectory=services/tee-runner"
+log "Installing SkillVault packages from GitHub (${REF} on ${REPO})..."
+GIT_PKG="git+${REPO}@${REF}"
+pip install --no-cache-dir "${GIT_PKG}#subdirectory=services/model-server"
+pip install --no-cache-dir "tee-runner[dstack] @ ${GIT_PKG}#subdirectory=services/tee-runner"
 
 export PYTHONPATH="/usr/local/lib/python3.12/site-packages:${PYTHONPATH:-}"
 
