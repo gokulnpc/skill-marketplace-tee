@@ -39,12 +39,13 @@ skill-mp/
 ├── docs/                    # Architecture and layer docs
 ├── progress/                # Per-phase task tables
 ├── .claude/                 # Hooks, permissions, slash commands
-├── apps/web/                # Next.js marketplace UI (future)
-├── apps/api/                # Marketplace API (future)
-├── packages/cli/            # Buyer CLI (future)
-├── services/tee-runner/     # FastAPI TEE runner (future)
-├── services/model-server/   # Local model server (future)
-└── skills/                  # Skill packages (future)
+├── apps/web/                # Next.js marketplace UI
+├── apps/api/                # Marketplace API
+├── packages/cli/            # Buyer CLI
+├── packages/shared/         # Shared types and crypto
+├── services/tee-runner/     # FastAPI TEE runner
+├── services/model-server/   # Local model server
+└── skills/                  # Skill packages and sample datasets
 ```
 
 ## Context loading order

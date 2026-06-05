@@ -7,7 +7,8 @@
     "dev:api": "pnpm --filter @skillvault/api dev",
     "dev:web": "pnpm --filter @skillvault/web dev",
     "build": "pnpm -r build",
-    "test": "pnpm -r test",
+    "test": "pnpm -r test && pnpm test:python",
+    "test:python": "cd services/tee-runner && .venv/bin/pytest -q && cd ../model-server && .venv/bin/pytest -q 2>/dev/null || (cd ../model-server && python -m pytest -q)",
     "demo": "bash scripts/demo-e2e.sh"
   }
 }

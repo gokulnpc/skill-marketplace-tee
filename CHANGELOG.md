@@ -8,6 +8,19 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- Phala production path: `deploy/phala/` Docker + compose, Ollama backend, real dstack attestation adapter.
+- `deploy/phala/PHALA_DEPLOY.md` and `.env.example` for CVM deployment.
+
+### Added
+
+- Root [README.md](README.md) with quick start, architecture, and demo instructions.
+
+### Fixed
+
+- `pnpm test` no longer fails when CLI has no test files; includes Python pytest suites.
+
+### Added
+
 - Demo polish: scorecard components, TEE proof card, audit receipt viewer with signature verify.
 - Receipt verification endpoints on tee-runner and marketplace API.
 - `scripts/demo-e2e.sh` and `pnpm demo` for PRD §17 validation.

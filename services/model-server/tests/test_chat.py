@@ -16,7 +16,7 @@ def test_health() -> None:
 def test_list_models() -> None:
     response = client.get("/v1/models")
     assert response.status_code == 200
-    assert response.json()["data"][0]["id"] == "llama-3.1-8b-instruct"
+    assert response.json()["data"][0]["id"] == "llama3.1:8b"
 
 
 def test_baseline_completion_differs_from_skill() -> None:
@@ -28,7 +28,7 @@ def test_baseline_completion_differs_from_skill() -> None:
     baseline = client.post(
         "/v1/chat/completions",
         json={
-            "model": "llama-3.1-8b-instruct",
+            "model": "llama3.1:8b",
             "messages": [
                 {
                     "role": "system",
@@ -41,7 +41,7 @@ def test_baseline_completion_differs_from_skill() -> None:
     with_skill = client.post(
         "/v1/chat/completions",
         json={
-            "model": "llama-3.1-8b-instruct",
+            "model": "llama3.1:8b",
             "messages": [
                 {
                     "role": "system",

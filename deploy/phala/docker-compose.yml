@@ -1,0 +1,43 @@
+# Phala CVM deployment — no `build:` context (Phala only uploads this file).
+# App code is installed from GitHub at container start. Push to GitHub before deploy.
+services:
+  ollama:
+    image: ollama/ollama:latest
+    restart: unless-stopped
+    volumes:
+      - ollama_data:/root/.ollama
+
+  skillvault-tee:
+    image: python:3.12-slim
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    volumes:
+      - /var/run/dstack.sock:/var/run/dstack.sock
+    configs:
+      - source: cvm_start
+        target: /usr/local/bin/cvm-start.sh
+        mode: 0555
+    entrypoint: ["/usr/local/bin/cvm-start.sh"]
+    environment:
+      RUNNER_MODE: dstack
+      DSTACK_STRICT: "true"
+      MODEL_MODE: ollama
+      MODEL_NAME: llama3.1:8b
+      MODEL_HASH: sha256:ollama-llama3.1-8b
+      OLLAMA_BASE_URL: http://ollama:11434
+      OLLAMA_PULL_ON_START: "true"
+      MODEL_SERVER_URL: http://127.0.0.1:8000
+      RUNNER_HASH: ${RUNNER_HASH:-sha256:skillvault-tee-runner-v1}
+      VERIFIER_HASH: ${VERIFIER_HASH:-sha256:skillvault-verifier-v1}
+      SKILLVAULT_REPO: https://github.com/gokulnpc/skill-marketplace-tee.git
+      SKILLVAULT_REF: main
+    depends_on:
+      - ollama
+
+configs:
+  cvm_start:
+    file: ./cvm-start.sh
+
+volumes:
+  ollama_data:
