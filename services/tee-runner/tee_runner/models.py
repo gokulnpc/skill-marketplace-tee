@@ -70,6 +70,8 @@ class ReceiptResponse(BaseModel):
     attestation_ref: str
     timestamp: datetime
     signature: str
+    harness_runtime: str | None = None
+    agent_iterations_total: int | None = None
 
 
 class SessionResponse(BaseModel):
@@ -105,6 +107,8 @@ class EvaluationResponse(BaseModel):
     passed: bool
     sample_count: int
     samples: list[SampleEvaluationResult]
+    artifacts: dict | None = None
+    agent_metrics: dict | None = None
 
 
 class TranscriptInferenceResult(BaseModel):
@@ -118,3 +122,4 @@ class InferenceResponse(BaseModel):
     status: SessionStatus
     sample_count: int
     results: list[TranscriptInferenceResult]
+    agent_metrics: dict | None = None

@@ -48,6 +48,29 @@ const CATALOG: Record<string, Partial<DisplaySkill>> = {
       { k: "Format", d: "Valid JSON, required fields, no hidden leakage" },
     ],
   },
+  "ari-juels": {
+    seller: "seller.research-lab",
+    version: "1.0.0",
+    verified: true,
+    blurb:
+      "Professor-style research agent grounded in a private paper corpus. Evaluates ideas, analyzes research, and generates conference slide decks (PPTX) from your uploaded papers — all inside the TEE.",
+    runs: 312,
+    pass_rate: 0.82,
+    median_uplift: 0.28,
+    baseline_avg: 0.52,
+    tags: ["agent", "research", "slides", "knowledge tools", "PPTX"],
+    examples: [
+      {
+        in: "Zip of 3 DeFi/MEV papers → create an 8–12 slide talk deck",
+        out: "slides.pptx with problem framing, mechanism design, and evidence-backed takeaways in Ari's presentation style.",
+      },
+    ],
+    metrics: [
+      { k: "Research utility", d: "Grounded analysis using skill knowledge + buyer papers" },
+      { k: "Privacy", d: "Skill instructions and corpus never leak in outputs" },
+      { k: "Artifacts", d: "PPTX slide deck generated and exportable on pass" },
+    ],
+  },
 };
 
 const DEFAULT_METRICS: SkillMetric[] = [

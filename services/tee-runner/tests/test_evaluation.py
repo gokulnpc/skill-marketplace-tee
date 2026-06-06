@@ -7,8 +7,9 @@ from fastapi.testclient import TestClient
 from tee_runner.config import Settings
 from tee_runner.crypto.envelope import encrypt_envelope
 from tee_runner.main import app
+from tee_runner.routes.sessions import get_session_service
+from tee_runner.services.agent_evaluation_service import AgentEvaluationService
 from tee_runner.services.evaluation_service import EvaluationService
-from tee_runner.services.inference_service import InferenceService
 from tee_runner.services.session_service import SessionService
 from tee_runner.session.store import SessionStore
 from tee_runner.tee.mock import MockTeeAdapter
@@ -20,48 +21,9 @@ DATASET_PATH = (
 )
 
 
-class InProcessModelClient:
-    def __init__(self, model_app) -> None:
-        self._client = TestClient(model_app)
-        self._model = "llama-3.1-8b-instruct"
-
-    def chat_completion(
-        self,
-        messages: list[dict[str, str]],
-        temperature: float = 0.0,
-    ) -> str:
-        response = self._client.post(
-            "/v1/chat/completions",
-            json={"model": self._model, "messages": messages, "temperature": temperature},
-        )
-        response.raise_for_status()
-        return response.json()["choices"][0]["message"]["content"]
-
-
 @pytest.fixture
-def eval_client(model_app) -> TestClient:
-    settings = Settings(runner_mode="mock")
-    service = SessionService(
-        store=SessionStore(),
-        tee=MockTeeAdapter(settings),
-        settings=settings,
-        inference_service=InferenceService(InProcessModelClient(model_app)),
-        evaluation_service=EvaluationService(),
-    )
-
-    from tee_runner.routes.sessions import get_session_service
-
-    app.dependency_overrides[get_session_service] = lambda: service
-    client = TestClient(app)
-    yield client
-    app.dependency_overrides.clear()
-
-
-@pytest.fixture
-def model_app():
-    from model_server.main import app as model_application
-
-    return model_application
+def eval_client(model_app, agent_client) -> TestClient:
+    return agent_client
 
 
 def test_full_evaluate_and_auto_finalize(eval_client: TestClient) -> None:

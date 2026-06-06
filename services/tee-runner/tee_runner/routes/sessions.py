@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Response
 
 from tee_runner.models import (
     AttestationResponse,
@@ -104,3 +104,21 @@ def verify_receipt(
     service: SessionService = Depends(get_session_service),
 ) -> dict[str, bool | str]:
     return service.verify_session_receipt(session_id)
+
+
+@router.get("/{session_id}/artifacts/{artifact_name}")
+def get_artifact(
+    session_id: str,
+    artifact_name: str,
+    service: SessionService = Depends(get_session_service),
+) -> Response:
+    from fastapi import HTTPException
+
+    try:
+        data = service.get_artifact(session_id, artifact_name)
+    except HTTPException:
+        raise
+    media = "application/octet-stream"
+    if artifact_name.endswith(".pptx"):
+        media = "application/vnd.openxmlformats-officedocument.presentationml.presentation"
+    return Response(content=data, media_type=media)

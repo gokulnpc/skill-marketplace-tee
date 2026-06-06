@@ -2,7 +2,8 @@ import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { z } from "zod";
 
-import { validateSkillPackage } from "./skill-validator.js";
+import { validateParsedZipPackage, validateSkillPackage } from "./skill-validator.js";
+import { parseSkillZip } from "./skill-package.js";
 import { settleEvaluationJob, type TeeEvaluation, type TeeReceipt } from "./settlement.js";
 import { store } from "./store.js";
 import { teeClient } from "./tee-client.js";
@@ -27,6 +28,68 @@ app.get("/v1/skills/:skillId", (c) => {
 });
 
 app.post("/v1/skills/upload", async (c) => {
+  const contentType = c.req.header("content-type") ?? "";
+
+  if (contentType.includes("multipart/form-data")) {
+    const form = await c.req.parseBody();
+    const packageField = form.package;
+    if (!(packageField instanceof File)) {
+      return c.json({ error: "Missing package file" }, 400);
+    }
+    const metadataRaw = form.metadata;
+    if (typeof metadataRaw !== "string") {
+      return c.json({ error: "Missing metadata JSON" }, 400);
+    }
+    const sellerId = String(form.seller_id ?? "");
+    const price = Number(form.price ?? 0);
+    const publish = form.publish === "true" || form.publish === true;
+    if (!sellerId || !Number.isFinite(price) || price <= 0) {
+      return c.json({ error: "Invalid seller_id or price" }, 400);
+    }
+
+    const packageBytes = Buffer.from(await packageField.arrayBuffer());
+    let parsed;
+    try {
+      parsed = parseSkillZip(packageBytes);
+    } catch (error) {
+      return c.json(
+        { error: "Invalid skill package", detail: error instanceof Error ? error.message : "parse failed" },
+        400,
+      );
+    }
+
+    const listingMeta = JSON.parse(metadataRaw) as {
+      name?: string;
+      version?: string;
+      category?: string;
+      evaluation_type?: string;
+      description?: string;
+    };
+    parsed.metadata = {
+      ...parsed.metadata,
+      ...listingMeta,
+      name: listingMeta.name ?? parsed.metadata.name,
+      description: listingMeta.description ?? parsed.metadata.description,
+    };
+
+    const errors = validateParsedZipPackage(parsed);
+    if (errors.length > 0) {
+      return c.json({ error: "Skill validation failed", reasons: errors }, 400);
+    }
+
+    const listing = store.createSkillFromZip({
+      seller_id: sellerId,
+      package_bytes: packageBytes,
+      metadata: parsed.metadata,
+      skill_hash: parsed.treeHash,
+      harness_runtime: parsed.harnessRuntime,
+      price,
+      publish,
+    });
+    const { skill_content: _content, ...publicListing } = listing;
+    return c.json(publicListing, 201);
+  }
+
   const body = await c.req.json();
   const schema = z.object({
     seller_id: z.string().min(1),
@@ -121,9 +184,10 @@ app.post("/v1/evaluations", async (c) => {
   try {
     const session = await teeClient.createSession(skill.skill_id, parsed.data.threshold);
     const attestation = await teeClient.getAttestation(session.session_id);
+    const skillPackage = store.loadSkillPackageBytes(skill);
     const skillEnvelope = teeClient.encryptToSession(
       attestation.ephemeral_public_key,
-      skill.skill_content,
+      skillPackage,
     );
     await teeClient.submitSkill(session.session_id, skillEnvelope);
 
@@ -168,6 +232,28 @@ app.get("/v1/evaluations/:jobId/receipt/verify", async (c) => {
       },
       502,
     );
+  }
+});
+
+app.get("/v1/evaluations/:jobId/artifacts/:name", async (c) => {
+  const job = store.getJob(c.req.param("jobId"));
+  if (!job?.tee_session_id) {
+    return c.json({ error: "Artifact not available" }, 404);
+  }
+  const name = c.req.param("name");
+  try {
+    const data = await teeClient.fetchArtifact(job.tee_session_id, name);
+    const media = name.endsWith(".pptx")
+      ? "application/vnd.openxmlformats-officedocument.presentationml.presentation"
+      : "application/octet-stream";
+    return new Response(data, {
+      headers: {
+        "Content-Type": media,
+        "Content-Disposition": `attachment; filename="${name}"`,
+      },
+    });
+  } catch {
+    return c.json({ error: "Artifact not found" }, 404);
   }
 });
 

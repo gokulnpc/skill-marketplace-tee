@@ -1,0 +1,22 @@
+[project]
+name = "sandbox-manager"
+version = "0.1.0"
+description = "SkillVault per-session skill sandbox"
+requires-python = ">=3.11"
+dependencies = [
+  "fastapi>=0.115.0",
+  "uvicorn>=0.32.0",
+  "httpx>=0.28.0",
+  "python-pptx>=1.0.2",
+]
+
+[project.scripts]
+sandbox-manager = "sandbox_manager.main:run"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["sandbox_manager*"]

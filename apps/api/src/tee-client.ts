@@ -41,6 +41,14 @@ export class TeeClient {
     return this.get(`/v1/sessions/${sessionId}/receipt/verify`);
   }
 
+  async fetchArtifact(sessionId: string, name: string): Promise<ArrayBuffer> {
+    const response = await fetch(`${this.baseUrl}/v1/sessions/${sessionId}/artifacts/${name}`);
+    if (!response.ok) {
+      throw new Error(`TEE artifact fetch failed: ${response.status}`);
+    }
+    return response.arrayBuffer();
+  }
+
   encryptToSession(publicKeyPem: string, plaintext: string | Buffer): EncryptedEnvelope {
     return encryptEnvelope(publicKeyPem, plaintext);
   }

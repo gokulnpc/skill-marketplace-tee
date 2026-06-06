@@ -13,9 +13,10 @@ import {
   submitDataset,
   type EvaluationJob,
 } from "@/lib/api";
-import { DEFAULT_BUYER_ID, EVAL_STEPS, VERIFY_CHECKS } from "@/lib/constants";
+import { DEFAULT_BUYER_ID, EVAL_STEPS, VERIFY_CHECKS, VERIFY_CHECKS_AGENT } from "@/lib/constants";
 import { encryptEnvelope, verifyAttestation } from "@/lib/crypto";
 import { pct, short } from "@/lib/format";
+import { PapersZipStep } from "@/components/screens/PapersZipStep";
 
 const MOCK_ATTESTATION = {
   session_id: "sess_7f3c9a21e84b0d52",
@@ -467,7 +468,7 @@ function DatasetStep({
   );
 }
 
-function VerifyChecklist({ done }: { done: number }) {
+function VerifyChecklist({ done, checks = VERIFY_CHECKS }: { done: number; checks?: typeof VERIFY_CHECKS }) {
   return (
     <div
       style={{
@@ -477,7 +478,7 @@ function VerifyChecklist({ done }: { done: number }) {
         background: "var(--card)",
       }}
     >
-      {VERIFY_CHECKS.map((c, i) => {
+      {checks.map((c, i) => {
         const ok = i < done;
         return (
           <div
@@ -752,6 +753,7 @@ function VerifyStep({
   loading,
   submitting,
   error,
+  verifyChecks = VERIFY_CHECKS,
 }: {
   next: () => void;
   back: () => void;
@@ -761,9 +763,10 @@ function VerifyStep({
   loading: boolean;
   submitting: boolean;
   error: string | null;
+  verifyChecks?: typeof VERIFY_CHECKS;
 }) {
   const [done, setDone] = useState(0);
-  const allDone = done >= VERIFY_CHECKS.length && !loading;
+  const allDone = done >= verifyChecks.length && !loading;
 
   useEffect(() => {
     if (loading) {
@@ -775,10 +778,10 @@ function VerifyStep({
     const t = setInterval(() => {
       i += 1;
       setDone(i);
-      if (i >= VERIFY_CHECKS.length) clearInterval(t);
+      if (i >= verifyChecks.length) clearInterval(t);
     }, 420);
     return () => clearInterval(t);
-  }, [variation, loading]);
+  }, [variation, loading, verifyChecks.length]);
 
   return (
     <div className="reveal reveal-d1">
@@ -874,7 +877,7 @@ function VerifyStep({
           </div>
         ) : (
           <>
-            {variation === "checklist" && <VerifyChecklist done={done} />}
+            {variation === "checklist" && <VerifyChecklist done={done} checks={verifyChecks} />}
             {variation === "diagram" && <VerifyDiagram done={done} attestation={attestation} />}
             {variation === "terminal" && <VerifyTerminal done={done} attestation={attestation} />}
           </>
@@ -910,7 +913,7 @@ function VerifyStep({
         )}
         {!loading && !allDone && (
           <span className="mono" style={{ fontSize: 11, color: "var(--mute)" }}>
-            verifying… {done}/{VERIFY_CHECKS.length}
+            verifying… {done}/{verifyChecks.length}
           </span>
         )}
         {!loading && allDone && (
@@ -934,9 +937,11 @@ function VerifyStep({
 
 export function EvaluateFlow({ skill }: { skill: DisplaySkill }) {
   const router = useRouter();
+  const isAgent = skill.evaluation_type === "agent";
+  const verifyChecks = isAgent ? VERIFY_CHECKS_AGENT : VERIFY_CHECKS;
   const [step, setStep] = useState(0);
   const [maxReached, setMax] = useState(0);
-  const [threshold, setThreshold] = useState(0.85);
+  const [threshold, setThreshold] = useState(isAgent ? 0.7 : 0.85);
   const [file, setFile] = useState<File | null>(null);
   const [variation, setVariation] = useState<VerifyVariation>("checklist");
   const [balance, setBalance] = useState<number | null>(null);
@@ -1065,14 +1070,22 @@ export function EvaluateFlow({ skill }: { skill: DisplaySkill }) {
               next={() => goStep(1)}
             />
           )}
-          {step === 1 && (
-            <DatasetStep
-              file={file}
-              setFile={setFile}
-              next={() => goStep(2)}
-              back={() => goStep(0)}
-            />
-          )}
+          {step === 1 &&
+            (isAgent ? (
+              <PapersZipStep
+                file={file}
+                setFile={setFile}
+                next={() => goStep(2)}
+                back={() => goStep(0)}
+              />
+            ) : (
+              <DatasetStep
+                file={file}
+                setFile={setFile}
+                next={() => goStep(2)}
+                back={() => goStep(0)}
+              />
+            ))}
           {step === 2 && (
             <VerifyStep
               next={handleEncryptAndRun}
@@ -1083,6 +1096,7 @@ export function EvaluateFlow({ skill }: { skill: DisplaySkill }) {
               loading={jobLoading}
               submitting={submitting}
               error={jobError ?? submitError}
+              verifyChecks={verifyChecks}
             />
           )}
         </main>

@@ -40,6 +40,7 @@ skill/
 ## Topics
 
 - [discreet-meeting-notes.md](discreet-meeting-notes.md) — MVP skill specification
+- [portable-agent.md](portable-agent.md) — Zip-based agent packages (skillvault-1)
 
 ## Related
 

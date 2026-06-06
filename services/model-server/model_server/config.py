@@ -20,10 +20,13 @@ class Settings(BaseSettings):
 
     model_mode: str = "mock"
     model_name: str = "llama3.1:8b"
-    model_hash: str = "sha256:ollama-llama3.1-8b"
+    model_hash: str = "sha256:mock-llama-3.1-8b-instruct"
     ollama_base_url: str = "http://127.0.0.1:11434"
     ollama_timeout: float = 300.0
     ollama_pull_on_start: bool = False
+    near_completions_base: str = "https://qwen3-30b.completions.near.ai/v1"
+    near_model_slug: str = "qwen3-30b"
+    near_timeout: float = 120.0
 
 
 @lru_cache

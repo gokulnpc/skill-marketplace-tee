@@ -242,7 +242,10 @@ export function SkillDetailScreen({ skill }: { skill: DisplaySkill }) {
                 marginTop: 18,
               }}
             >
-              <Icon name="lock" size={16} /> Evaluate on my dataset
+              <Icon name="lock" size={16} />{" "}
+              {skill.evaluation_type === "agent"
+                ? "Evaluate on my research papers"
+                : "Evaluate on my dataset"}
             </Link>
 
             <div
@@ -263,7 +266,7 @@ export function SkillDetailScreen({ skill }: { skill: DisplaySkill }) {
               <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12.5 }}>
                 <span style={{ color: "var(--mute)" }}>Model</span>
                 <span className="mono" style={{ whiteSpace: "nowrap" }}>
-                  Llama 3.1 8B · local
+                  {skill.evaluation_type === "agent" ? "NEAR AI · private TEE" : "Llama 3.1 8B · local"}
                 </span>
               </div>
               <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12.5 }}>

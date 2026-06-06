@@ -15,6 +15,10 @@ class Settings(BaseSettings):
     model_server_url: str = "http://localhost:8000"
     model_name: str = "llama3.1:8b"
     receipt_signing_key_pem: str | None = None
+    sandbox_manager_url: str | None = None
+    inference_provider: str = "mock"
+    near_completions_base: str = "https://qwen3-30b.completions.near.ai/v1"
+    near_model_slug: str = "qwen3-30b"
 
 
 @lru_cache

@@ -209,3 +209,93 @@ When you have Phala access, you do **not** need to share passwords. For help deb
 4. `phala logs skillvault-tee` (last 50 lines)
 
 We can then wire your marketplace host to the live CVM and validate a full encrypted evaluation.
+
+---
+
+## Agent stack (Ari Juels / papers.zip → slides.pptx)
+
+For **agent evaluations** with NEAR private inference (no Ollama in CVM):
+
+```text
+Railway web + API                    Phala CVM (skillvault-agent)
+┌─────────────────────────┐          ┌─────────────────────────────────┐
+│ apps/web                │          │  skillvault-agent (single box)  │
+│ apps/api  ──HTTPS──────►│          │    sandbox-manager  :8091       │
+└─────────────────────────┘          │    model-server     :8000       │
+                                     │    tee-runner       :8080 ◄─────┤
+                                     │         ▲ dstack.sock           │
+                                     └─────────────────────────────────┘
+                                              │
+                                              ▼ NEAR AI (qwen3-30b GPU TEE)
+```
+
+### Prerequisites
+
+1. **Push agent code to GitHub** — the CVM runs `pip install git+https://github.com/gokulnpc/skill-marketplace-tee.git@main`. Unpushed local commits are invisible to Phala.
+2. **`NEAR_API_KEY`** from [cloud.near.ai](https://cloud.near.ai) — required at deploy time (`-e NEAR_API_KEY=...`).
+3. **Railway API** env: `TEE_RUNNER_URL` = public Phala tee-runner URL (port 8080).
+
+Regenerate compose after editing `cvm-start-agent.sh`:
+
+```bash
+bash deploy/phala/prepare-compose-agent.sh
+```
+
+### Deploy agent CVM
+
+```bash
+export NEAR_API_KEY="your-key-from-cloud.near.ai"
+
+cd deploy/phala
+phala deploy \
+  -c docker-compose.phala.agent.yml \
+  -n skillvault-agent \
+  -t tdx.large \
+  --wait \
+  -e "NEAR_API_KEY=$NEAR_API_KEY"
+```
+
+Use **`tdx.large`** (8 GB RAM) — no local model weights; inference is NEAR-hosted.
+
+Get the public URL:
+
+```bash
+phala cvms get skillvault-agent --json | jq -r '.public_urls[] | select(.port==8080) | .app'
+curl https://YOUR-AGENT-CVM-URL/health
+# expect: {"status":"ok","mode":"dstack"}
+```
+
+### Update existing `skillvault-tee` instead (same URL)
+
+If Railway already points at `skillvault-tee` and you want to **replace** the Ollama stack in place:
+
+```bash
+phala deploy \
+  -c docker-compose.phala.agent.yml \
+  -n skillvault-tee \
+  -t tdx.large \
+  --wait \
+  -e "NEAR_API_KEY=$NEAR_API_KEY"
+```
+
+The public URL usually stays the same; confirm with `phala cvms get skillvault-tee`.
+
+### Railway environment (API service)
+
+| Variable | Value |
+| -------- | ----- |
+| `TEE_RUNNER_URL` | `https://…-8080.dstack-pha-prod5.phala.network` |
+| `RUNNER_HASH` | `sha256:skillvault-tee-runner-v2` |
+| `VERIFIER_HASH` | `sha256:skillvault-verifier-v2` |
+| `MODEL_HASH` | `sha256:near-qwen3-30b` |
+| `SKILL_STORAGE_SECRET` | strong random secret |
+
+Web service: `NEXT_PUBLIC_API_URL` = your Railway API URL.
+
+Also commit **`ari-portable-skill.zip`** at repo root so the API can seed the `ari-juels` listing on Railway.
+
+### Smoke test
+
+1. Open Railway web UI → **Ari Juels** skill → Evaluate.
+2. Upload a papers zip → run evaluation.
+3. Scorecard should show NEAR attestation + **Download slides.pptx**.

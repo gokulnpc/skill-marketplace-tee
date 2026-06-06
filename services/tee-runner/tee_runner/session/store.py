@@ -6,6 +6,13 @@ from tee_runner.crypto.receipt import utc_now
 from tee_runner.models import SessionStatus
 
 
+from dataclasses import dataclass, field
+from datetime import datetime
+
+from tee_runner.crypto.receipt import utc_now
+from tee_runner.models import SessionStatus
+
+
 @dataclass
 class SessionRecord:
     session_id: str
@@ -22,6 +29,15 @@ class SessionRecord:
     evaluation_results: dict | None = None
     receipt: dict | None = None
     receipt_signature: str | None = None
+    skill_manifest: dict | None = None
+    skill_package_hash: str | None = None
+    sandbox_id: str | None = None
+    near_attestation: dict | None = None
+    agent_metrics: dict | None = None
+    session_token: str | None = None
+    artifacts: dict[str, bytes] | None = None
+    artifacts_meta: dict[str, dict] | None = None
+    workspace_dir: str | None = None
 
 
 class SessionStore:

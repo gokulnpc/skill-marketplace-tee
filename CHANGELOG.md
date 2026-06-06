@@ -6,7 +6,30 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+
+- **Ari Juels demo (frontend + E2E):** Marketplace seeds `ari-juels` from `ari-portable-skill.zip`; catalog entry with agent/slides copy.
+- Buyer evaluate flow accepts **papers.zip** for agent skills (`PapersZipStep` with client-side validation and commitment hash).
+- Papers zip dataset format in tee-runner: safe extract → single slide-generation agent task → PPTX artifact export.
+- Agent tools: `list_papers`, `read_paper`, `generate_slides_pptx` (python-pptx) in builtin harness and sandbox agent loop.
+- API/TEE artifact download: `GET /v1/evaluations/:jobId/artifacts/slides.pptx`.
+- Scorecard **Download slides.pptx** button; agent-specific attestation checks and NEAR pipeline steps in UI.
+- Integration tests for papers zip → agent tool loop → PPTX artifact → eval pass.
+
+- Zip-based portable skill packages (`skillvault-1` manifest, tree hash, encrypted blob storage).
+- Agent evaluation harness with builtin knowledge tools (`read_file`, `list_dir`, `grep_knowledge`).
+- `services/sandbox-manager/` per-session sandbox sidecar (dstack-webhost-inspired unpack + harness exec).
+- NEAR AI private inference mode (`MODEL_MODE=near_private`) with attestation fields in receipts.
+- Session-scoped internal model proxy at `/v1/internal/chat/completions`.
+- `deploy/phala/docker-compose.agent.yml` for agent + sandbox + NEAR inference stack.
+- Docs: `docs/skill-package/portable-agent.md`, `docs/inference/near-private.md`.
+
 ### Changed
+
+- Seller upload accepts multipart `.zip` packages; legacy JSON `skill_content` still supported.
+- `tee-runner` uses `AgentEvaluationService` instead of single-shot `InferenceService`.
+- Package hash is SHA-256 tree hash over zip contents (excludes `adapters/`).
+
 
 - Refactored `apps/web` to the warm-paper editorial design from the Tee prototype: Instrument Serif / Inter / JetBrains Mono, shared primitives, and all marketplace screens (browse, skill detail, evaluate flow, running, scorecard, upload, seller, licenses) as Next.js App Router pages wired to the marketplace API.
 - Removed the standalone `Tee/` Babel prototype and legacy Tailwind scorecard components.

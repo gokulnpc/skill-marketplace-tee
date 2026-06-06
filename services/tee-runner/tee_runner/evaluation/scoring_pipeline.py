@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 
+from tee_runner.evaluation.agent_verifier import score_agent_output
 from tee_runner.evaluation.leakage_guard import export_block_reasons, sanitize_for_export
 from tee_runner.evaluation.redaction_verifier import score_output
 from tee_runner.evaluation.types import GroundTruth, ScoreWeights
@@ -37,15 +38,17 @@ def evaluate_samples(
     ground_truth_map: dict[str, GroundTruth],
     skill_content: str,
     weights: ScoreWeights,
+    evaluation_type: str = "redaction",
 ) -> EvaluationSummary:
     samples: list[SampleEvaluation] = []
+    score_fn = score_agent_output if evaluation_type == "agent" else score_output
 
     for result in inference_results:
         transcript_id = result["transcript_id"]
         ground_truth = ground_truth_map.get(transcript_id, GroundTruth())
 
-        baseline_eval = score_output(result["baseline_output"], ground_truth, weights)
-        skill_eval = score_output(result["with_skill_output"], ground_truth, weights)
+        baseline_eval = score_fn(result["baseline_output"], ground_truth, weights)
+        skill_eval = score_fn(result["with_skill_output"], ground_truth, weights)
 
         approved = sanitize_for_export(
             result["with_skill_output"], skill_content, ground_truth

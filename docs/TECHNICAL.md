@@ -6,6 +6,8 @@ SkillVault TEE uses a marketplace-hosted Phala TEE as a neutral execution enviro
 
 Default inference mode: **Phala TEE + local open-weight model** (no external LLM calls).
 
+**Mode 2 (agent stack):** Phala TEE orchestrates zip-based agent harness + optional sandbox-manager; model calls route to [NEAR AI private inference](inference/near-private.md) (GPU TEE). Receipts bind SkillVault and NEAR attestations.
+
 ## System diagram
 
 ```mermaid

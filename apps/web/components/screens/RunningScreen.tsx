@@ -6,11 +6,16 @@ import { useEffect, useState } from "react";
 import { Icon } from "@/components/shared/Icon";
 import { EnclaveChip } from "@/components/shared/Pill";
 import { fetchEvaluation, type EvaluationJob } from "@/lib/api";
-import { PIPELINE } from "@/lib/constants";
+import { PIPELINE, PIPELINE_AGENT } from "@/lib/constants";
 
-export function RunningScreen({ jobId }: { jobId: string }) {
-  const [active, setActive] = useState(0);
+export function RunningScreen({ jobId, isAgent: isAgentProp }: { jobId: string; isAgent?: boolean }) {
   const [job, setJob] = useState<EvaluationJob | null>(null);
+  const agentFromJob =
+    (job?.evaluation as { agent_metrics?: { evaluation_type?: string } } | undefined)?.agent_metrics
+      ?.evaluation_type === "agent" || job?.skill_id === "ari-juels";
+  const isAgent = isAgentProp ?? agentFromJob;
+  const pipeline = isAgent ? PIPELINE_AGENT : PIPELINE;
+  const [active, setActive] = useState(0);
   const done = job?.status === "completed" || job?.status === "failed";
   const sessionId = job?.tee_session_id ?? "sess_7f3c9a21";
 
@@ -19,7 +24,7 @@ export function RunningScreen({ jobId }: { jobId: string }) {
     const t = setInterval(() => {
       i += 1;
       setActive(i);
-      if (i >= PIPELINE.length) clearInterval(t);
+      if (i >= pipeline.length) clearInterval(t);
     }, 700);
     return () => clearInterval(t);
   }, []);
@@ -120,7 +125,7 @@ export function RunningScreen({ jobId }: { jobId: string }) {
             </span>
           </div>
           <div style={{ padding: "8px 0" }}>
-            {PIPELINE.map((p, i) => {
+            {pipeline.map((p, i) => {
               const isDone = i < active;
               const isActive = i === active && !done;
               return (

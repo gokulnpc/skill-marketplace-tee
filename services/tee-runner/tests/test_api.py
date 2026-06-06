@@ -124,7 +124,6 @@ def test_receipt_signing_roundtrip(service: SessionService) -> None:
     from tee_runner.crypto.envelope import encrypt_envelope
     from tee_runner.crypto.receipt import verify_receipt
     from tee_runner.models import CreateSessionRequest, FinalizeRequest
-    from cryptography.hazmat.primitives import serialization
 
     created = service.create_session(
         CreateSessionRequest(skill_id="test-skill", threshold=0.8)
@@ -142,17 +141,12 @@ def test_receipt_signing_roundtrip(service: SessionService) -> None:
         FinalizeRequest(baseline_score=0.5, skill_score=0.95, skill_hash="sha256:deadbeef"),
     )
 
-    public_pem = service._signing_key.public_key().public_bytes(
-        encoding=serialization.Encoding.PEM,
-        format=serialization.PublicFormat.SubjectPublicKeyInfo,
-    ).decode("utf-8")
-    payload = {
-        k: (v.isoformat() if hasattr(v, "isoformat") else v)
-        for k, v in receipt.model_dump().items()
-        if k not in {"signature", "timestamp"}
-    }
-    payload["timestamp"] = receipt.timestamp.isoformat()
-    verify_receipt(public_pem, payload, receipt.signature)
+    from tee_runner.crypto.receipt import public_key_pem_from_private
+
+    public_pem = public_key_pem_from_private(service._signing_key)
+    record = service._store.get(created.session_id)
+    assert record.receipt is not None
+    verify_receipt(public_pem, record.receipt, receipt.signature)
 
 
 def test_signing_public_key(client: TestClient) -> None:

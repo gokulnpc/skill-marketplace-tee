@@ -1052,6 +1052,24 @@ export function ScorecardScreen({ job, skill }: { job: EvaluationJob; skill: Dis
         <ScorecardProofFirst view={view} jobId={job.job_id} skillId={skill.skill_id} />
       ) : null}
 
+      {view.passed &&
+      (job.evaluation as { artifacts?: Record<string, { size?: number }> } | undefined)?.artifacts?.[
+        "slides.pptx"
+      ] ? (
+        <div style={{ marginTop: 22 }}>
+          <a
+            href={`${API_URL}/v1/evaluations/${job.job_id}/artifacts/slides.pptx`}
+            className="btn btn-accent"
+            style={{ padding: "12px 22px", display: "inline-flex", gap: 8, alignItems: "center" }}
+          >
+            <Icon name="arrow" size={16} /> Download slides.pptx
+          </a>
+          <p className="mono" style={{ fontSize: 11, color: "var(--mute)", marginTop: 8 }}>
+            PPTX generated inside the TEE · exported after leakage guard
+          </p>
+        </div>
+      ) : null}
+
       <div style={{ display: "flex", gap: 10, marginTop: 26 }}>
         <Link href="/" className="btn btn-primary" style={{ padding: "12px 22px" }}>
           Go to my licenses <Icon name="arrow" size={15} />

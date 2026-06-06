@@ -16,6 +16,10 @@ export interface SkillListing {
   price: number;
   status: "draft" | "published" | "rejected";
   skill_hash: string;
+  storage_ref?: string;
+  package_format_version?: string;
+  harness_runtime?: string;
+  inference_profile?: "standard" | "premium";
 }
 
 export interface EncryptedEnvelope {

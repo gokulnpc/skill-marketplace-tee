@@ -25,10 +25,13 @@ from tee_runner.models import (
     SessionStatus,
     TranscriptInferenceResult,
 )
-from tee_runner.services.evaluation_service import EvaluationService, compute_skill_hash
+from tee_runner.services.evaluation_service import EvaluationService
+from tee_runner.services.package_loader import compute_skill_hash
 from tee_runner.services.inference_service import InferenceService
+from tee_runner.services.agent_evaluation_service import AgentEvaluationService
 from tee_runner.session.store import SessionRecord, SessionStore
 from tee_runner.tee.base import TeeAdapter
+from typing import Any
 
 
 class SessionService:
@@ -38,8 +41,9 @@ class SessionService:
         tee: TeeAdapter,
         settings: Settings,
         signing_key=None,
-        inference_service: InferenceService | None = None,
+        inference_service: InferenceService | AgentEvaluationService | None = None,
         evaluation_service: EvaluationService | None = None,
+        model_client=None,
     ) -> None:
         self._store = store
         self._tee = tee
@@ -49,6 +53,7 @@ class SessionService:
         )
         self._inference_service = inference_service
         self._evaluation_service = evaluation_service
+        self._model_client = model_client
 
     def create_session(self, request: CreateSessionRequest) -> CreateSessionResponse:
         private_key, public_key_pem = self._tee.generate_session_keys()
@@ -60,6 +65,7 @@ class SessionService:
             public_key_pem=public_key_pem,
             attestation_quote=attestation.quote,
         )
+        record.session_token = secrets.token_hex(16)
         return CreateSessionResponse(session_id=record.session_id, status=record.status)
 
     def get_session(self, session_id: str) -> SessionResponse:
@@ -144,6 +150,11 @@ class SessionService:
                 detail=f"Model inference failed: {exc}",
             ) from exc
 
+        if self._settings.inference_provider == "near_private" and record.near_attestation is None:
+            from tee_runner.clients.near_client import fetch_near_attestation
+
+            record.near_attestation = fetch_near_attestation(self._settings.near_completions_base)
+
         record.status = SessionStatus.INFERENCE_COMPLETE
         return self._to_inference_response(record)
 
@@ -188,6 +199,8 @@ class SessionService:
                 }
                 for sample in summary.samples
             ],
+            "artifacts": record.artifacts_meta or {},
+            "agent_metrics": record.agent_metrics or {},
         }
         record.status = SessionStatus.EVALUATED
         return self._to_evaluation_response(record)
@@ -215,10 +228,18 @@ class SessionService:
             skill_score = record.evaluation_results["skill_score"]
 
         skill_hash = request.skill_hash
+        if skill_hash is None and record.skill_package_hash:
+            skill_hash = record.skill_package_hash
         if skill_hash is None and record.skill_plaintext is not None:
             skill_hash = compute_skill_hash(record.skill_plaintext)
         if skill_hash is None:
             skill_hash = "sha256:unknown"
+
+        inference_attestation_ref = None
+        if record.near_attestation:
+            from tee_runner.clients.near_client import attestation_ref as near_attestation_ref
+
+            inference_attestation_ref = near_attestation_ref(record.near_attestation)
 
         uplift = skill_score - baseline_score
         passed = skill_score >= record.threshold
@@ -241,6 +262,12 @@ class SessionService:
             "passed": passed,
             "attestation_ref": attestation_ref,
             "timestamp": timestamp.isoformat(),
+            "inference_provider": self._settings.inference_provider,
+            "inference_model": self._settings.near_model_slug,
+            "inference_attestation_ref": inference_attestation_ref,
+            "sandbox_runtime": "runsc" if self._settings.sandbox_manager_url else "inline",
+            "harness_runtime": (record.agent_metrics or {}).get("harness_runtime", "builtin"),
+            "agent_iterations_total": (record.agent_metrics or {}).get("iterations_cap"),
         }
         signature = sign_receipt(self._signing_key, payload)
 
@@ -251,6 +278,15 @@ class SessionService:
         record.dataset_plaintext = None
 
         return self._to_receipt_response(record)
+
+    def get_artifact(self, session_id: str, name: str) -> bytes:
+        record = self._require_session(session_id)
+        if not record.artifacts or name not in record.artifacts:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Artifact not found: {name}",
+            )
+        return record.artifacts[name]
 
     def get_receipt(self, session_id: str) -> ReceiptResponse:
         record = self._require_session(session_id)
@@ -286,6 +322,26 @@ class SessionService:
             "receipt_id": record.receipt["receipt_id"],
             "session_id": session_id,
         }
+
+    def verify_session_token(self, session_id: str, token: str | None) -> bool:
+        record = self._store.get(session_id)
+        if record is None or record.session_token is None:
+            return False
+        if token is None:
+            return self._settings.runner_mode == "mock"
+        return secrets.compare_digest(record.session_token, token)
+
+    def proxy_chat(
+        self,
+        session_id: str,
+        messages: list[dict[str, Any]],
+        tools: list[dict[str, Any]] | None = None,
+    ) -> dict[str, Any]:
+        if self._model_client is None:
+            raise HTTPException(status_code=503, detail="Model client not configured")
+        result = self._model_client.chat_completion_with_tools(messages, tools=tools)
+        msg = result.get("message", {})
+        return {"content": msg.get("content", ""), "message": msg, "usage": result.get("usage")}
 
     def _require_session(self, session_id: str) -> SessionRecord:
         record = self._store.get(session_id)
@@ -324,6 +380,8 @@ class SessionService:
             attestation_ref=record.receipt["attestation_ref"],
             timestamp=timestamp,
             signature=record.receipt_signature,
+            harness_runtime=record.receipt.get("harness_runtime"),
+            agent_iterations_total=record.receipt.get("agent_iterations_total"),
         )
 
     @staticmethod
@@ -334,6 +392,7 @@ class SessionService:
             status=record.status,
             sample_count=len(record.inference_results),
             results=[TranscriptInferenceResult(**item) for item in record.inference_results],
+            agent_metrics=record.agent_metrics,
         )
 
     def _to_evaluation_response(self, record: SessionRecord) -> EvaluationResponse:
@@ -348,4 +407,6 @@ class SessionService:
             passed=record.evaluation_results["skill_score"] >= record.threshold,
             sample_count=record.evaluation_results["sample_count"],
             samples=[SampleEvaluationResult(**item) for item in record.evaluation_results["samples"]],
+            artifacts=record.evaluation_results.get("artifacts"),
+            agent_metrics=record.evaluation_results.get("agent_metrics"),
         )

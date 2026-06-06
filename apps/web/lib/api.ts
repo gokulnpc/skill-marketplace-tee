@@ -34,6 +34,13 @@ export interface EvaluationJob {
     amount: number;
   };
   error?: string;
+  artifacts?: Record<string, { sha256?: string; size?: number; content_type?: string }>;
+}
+
+export async function fetchEvaluationArtifact(jobId: string, name: string): Promise<Blob> {
+  const response = await fetch(`${API_URL}/v1/evaluations/${jobId}/artifacts/${name}`);
+  if (!response.ok) throw new Error("Artifact not found");
+  return response.blob();
 }
 
 export async function fetchSkills(): Promise<SkillListing[]> {
@@ -86,6 +93,36 @@ export async function submitDataset(
   return response.json();
 }
 
+export async function uploadSkillZip(payload: {
+  seller_id: string;
+  package: File;
+  metadata: {
+    name: string;
+    version: string;
+    category: string;
+    evaluation_type: string;
+    description: string;
+  };
+  price: number;
+  publish?: boolean;
+}) {
+  const form = new FormData();
+  form.append("package", payload.package);
+  form.append("metadata", JSON.stringify(payload.metadata));
+  form.append("seller_id", payload.seller_id);
+  form.append("price", String(payload.price));
+  form.append("publish", String(payload.publish ?? true));
+  const response = await fetch(`${API_URL}/v1/skills/upload`, {
+    method: "POST",
+    body: form,
+  });
+  if (!response.ok) {
+    throw new Error(await response.text());
+  }
+  return response.json();
+}
+
+/** @deprecated Legacy JSON upload */
 export async function uploadSkill(payload: {
   seller_id: string;
   skill_content: string;

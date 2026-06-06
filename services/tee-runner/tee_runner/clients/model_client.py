@@ -9,7 +9,7 @@ class ModelClient:
         self,
         base_url: str,
         model: str,
-        timeout: float = 60.0,
+        timeout: float = 120.0,
         client: httpx.Client | None = None,
     ) -> None:
         self._base_url = base_url.rstrip("/")
@@ -21,21 +21,36 @@ class ModelClient:
         self,
         messages: list[dict[str, str]],
         temperature: float = 0.0,
+        *,
+        response_format_json: bool = True,
     ) -> str:
-        payload = {
+        payload: dict[str, Any] = {
             "model": self._model,
             "messages": messages,
             "temperature": temperature,
-            "response_format": {"type": "json_object"},
         }
-        if self._client is not None:
-            response = self._client.post("/v1/chat/completions", json=payload)
-        else:
-            with httpx.Client(base_url=self._base_url, timeout=self._timeout) as client:
-                response = client.post("/v1/chat/completions", json=payload)
-        response.raise_for_status()
-        data = response.json()
+        if response_format_json:
+            payload["response_format"] = {"type": "json_object"}
+        data = self._post("/v1/chat/completions", payload)
         return data["choices"][0]["message"]["content"]
+
+    def chat_completion_with_tools(
+        self,
+        messages: list[dict[str, Any]],
+        tools: list[dict[str, Any]] | None = None,
+        temperature: float = 0.0,
+    ) -> dict[str, Any]:
+        payload: dict[str, Any] = {
+            "model": self._model,
+            "messages": messages,
+            "temperature": temperature,
+        }
+        if tools:
+            payload["tools"] = tools
+        else:
+            payload["response_format"] = {"type": "json_object"}
+        data = self._post("/v1/chat/completions", payload)
+        return {"message": data["choices"][0]["message"], "usage": data.get("usage")}
 
     def health(self) -> dict[str, Any]:
         if self._client is not None:
@@ -43,5 +58,14 @@ class ModelClient:
         else:
             with httpx.Client(base_url=self._base_url, timeout=self._timeout) as client:
                 response = client.get("/health")
+        response.raise_for_status()
+        return response.json()
+
+    def _post(self, path: str, payload: dict[str, Any]) -> dict[str, Any]:
+        if self._client is not None:
+            response = self._client.post(path, json=payload)
+        else:
+            with httpx.Client(base_url=self._base_url, timeout=self._timeout) as client:
+                response = client.post(path, json=payload)
         response.raise_for_status()
         return response.json()

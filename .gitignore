@@ -1,4 +1,5 @@
-# Dependencies
+# Local encrypted skill blobs (API dev storage)
+apps/api/data/
 node_modules/
 .pnpm-store/
 

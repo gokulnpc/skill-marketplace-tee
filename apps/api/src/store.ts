@@ -5,11 +5,15 @@ import { fileURLToPath } from "node:url";
 
 import type { EvaluationJob, License, SkillListing, SkillMetadata } from "@skillvault/shared";
 
+import { buildMinimalZipFromSkillMd, parseSkillZip } from "./skill-package.js";
+import { skillStorage } from "./skill-storage.js";
+
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = join(__dirname, "../../..");
 
 export interface StoredSkill extends SkillListing {
-  skill_content: string;
+  /** @deprecated Legacy plaintext; new uploads use storage_ref only */
+  skill_content?: string;
 }
 
 export class MarketplaceStore {
@@ -34,6 +38,22 @@ export class MarketplaceStore {
 
   getSkill(skillId: string): StoredSkill | undefined {
     return this.skills.get(skillId);
+  }
+
+  loadSkillPackageBytes(skill: StoredSkill): Buffer {
+    if (skill.storage_ref) {
+      return skillStorage.load(skill.storage_ref);
+    }
+    if (skill.skill_content) {
+      return buildMinimalZipFromSkillMd(skill.skill_content, {
+        name: skill.name,
+        version: "0.1.0",
+        category: skill.category,
+        evaluation_type: skill.evaluation_type,
+        description: skill.description,
+      });
+    }
+    throw new Error("Skill package not available");
   }
 
   getBalance(buyerId: string): number {
@@ -111,15 +131,19 @@ export class MarketplaceStore {
     return [...this.licenses.values()].filter((license) => license.buyer_id === buyerId);
   }
 
-  createSkill(input: {
+  createSkillFromZip(input: {
     seller_id: string;
-    skill_content: string;
+    package_bytes: Buffer;
     metadata: SkillMetadata;
+    skill_hash: string;
+    harness_runtime: string;
     price: number;
     publish?: boolean;
+    inference_profile?: "standard" | "premium";
+    skill_id?: string;
   }): StoredSkill {
-    const skillHash = `sha256:${createHash("sha256").update(input.skill_content).digest("hex")}`;
-    const skillId = input.metadata.name.toLowerCase().replace(/\s+/g, "-");
+    const storageRef = skillStorage.store(input.package_bytes);
+    const skillId = input.skill_id ?? input.metadata.name.toLowerCase().replace(/\s+/g, "-");
     const listing: StoredSkill = {
       skill_id: skillId,
       seller_id: input.seller_id,
@@ -129,14 +153,38 @@ export class MarketplaceStore {
       evaluation_type: input.metadata.evaluation_type,
       price: input.price,
       status: input.publish ? "published" : "draft",
-      skill_hash: skillHash,
-      skill_content: input.skill_content,
+      skill_hash: input.skill_hash,
+      storage_ref: storageRef,
+      package_format_version: "skillvault-1",
+      harness_runtime: input.harness_runtime,
+      inference_profile: input.inference_profile ?? "standard",
     };
     this.skills.set(skillId, listing);
     if (!this.sellerBalances.has(input.seller_id)) {
       this.sellerBalances.set(input.seller_id, 0);
     }
     return listing;
+  }
+
+  /** @deprecated Legacy text upload — wraps into zip internally */
+  createSkill(input: {
+    seller_id: string;
+    skill_content: string;
+    metadata: SkillMetadata;
+    price: number;
+    publish?: boolean;
+  }): StoredSkill {
+    const zip = buildMinimalZipFromSkillMd(input.skill_content, input.metadata);
+    const skillHash = `sha256:${createHash("sha256").update(zip).digest("hex")}`;
+    return this.createSkillFromZip({
+      seller_id: input.seller_id,
+      package_bytes: zip,
+      metadata: input.metadata,
+      skill_hash: skillHash,
+      harness_runtime: "builtin",
+      price: input.price,
+      publish: input.publish,
+    });
   }
 
   createJob(input: {
@@ -194,6 +242,35 @@ export class MarketplaceStore {
       price: 25,
       publish: true,
     });
+    this.seedAriJuelsSkill();
+  }
+
+  private seedAriJuelsSkill(): void {
+    const zipPath = join(REPO_ROOT, "ari-portable-skill.zip");
+    try {
+      const packageBytes = readFileSync(zipPath);
+      const parsed = parseSkillZip(packageBytes, {
+        name: "Ari Juels",
+        version: "1.0.0",
+        category: "Data",
+        evaluation_type: "agent",
+        description:
+          "Professor-style research agent with private paper corpus, ideation, analysis, and PPTX slide generation.",
+      });
+      this.createSkillFromZip({
+        seller_id: "seller_demo",
+        package_bytes: packageBytes,
+        metadata: parsed.metadata,
+        skill_hash: parsed.treeHash,
+        harness_runtime: parsed.harnessRuntime,
+        price: 45,
+        publish: true,
+        skill_id: "ari-juels",
+        inference_profile: "premium",
+      });
+    } catch {
+      // Ari zip optional in minimal checkouts
+    }
   }
 }
 

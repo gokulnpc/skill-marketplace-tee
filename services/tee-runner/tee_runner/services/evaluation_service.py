@@ -1,13 +1,11 @@
-import hashlib
-
 from tee_runner.evaluation.scoring_pipeline import EvaluationSummary, evaluate_samples
-from tee_runner.services.dataset_parser import parse_evaluation_dataset, parse_skill
+from tee_runner.services.dataset_parser import parse_evaluation_dataset
+from tee_runner.services.package_loader import parse_skill_package
 from tee_runner.session.store import SessionRecord
 
 
 def compute_skill_hash(skill_bytes: bytes) -> str:
-    digest = hashlib.sha256(skill_bytes).hexdigest()
-    return f"sha256:{digest}"
+    return parse_skill_package(skill_bytes).tree_hash
 
 
 class EvaluationService:
@@ -17,12 +15,20 @@ class EvaluationService:
         if record.skill_plaintext is None or record.dataset_plaintext is None:
             raise ValueError("Session is missing decrypted skill or dataset")
 
-        skill_content = parse_skill(record.skill_plaintext)
+        pkg = parse_skill_package(record.skill_plaintext)
+        skill_content = pkg.skill_md
         dataset = parse_evaluation_dataset(record.dataset_plaintext)
+        eval_type = (
+            pkg.metadata.get("evaluation_type")
+            or pkg.manifest.get("evaluation_type")
+            or dataset.evaluation_type
+            or "redaction"
+        )
 
         return evaluate_samples(
             inference_results=record.inference_results,
             ground_truth_map=dataset.ground_truth,
             skill_content=skill_content,
             weights=dataset.weights,
+            evaluation_type=eval_type,
         )

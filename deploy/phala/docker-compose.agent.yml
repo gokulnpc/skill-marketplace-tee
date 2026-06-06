@@ -1,0 +1,52 @@
+# Agent eval stack: tee-runner + sandbox-manager + NEAR private inference
+# Deploy with: phala deploy -c docker-compose.agent.yml -n skillvault-agent -t tdx.xlarge --wait \
+#   -e NEAR_API_KEY="$NEAR_API_KEY"
+services:
+  sandbox-manager:
+    image: python:3.12-slim
+    restart: unless-stopped
+    ports:
+      - "8091:8091"
+    volumes:
+      - sandbox_data:/tmp/skillvault-sandbox
+    environment:
+      SANDBOX_PORT: "8091"
+      MODEL_PROXY_URL: http://skillvault-tee:8080
+      CONTAINER_RUNTIME: ${CONTAINER_RUNTIME:-runc}
+    command: >
+      sh -c "pip install -q /app/services/sandbox-manager 2>/dev/null || pip install -q fastapi uvicorn httpx python-pptx &&
+      uvicorn sandbox_manager.main:app --host 0.0.0.0 --port 8091"
+    working_dir: /app
+
+  skillvault-tee:
+    image: python:3.12-slim
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+      - "8000:8000"
+    volumes:
+      - /var/run/dstack.sock:/var/run/dstack.sock
+    environment:
+      RUNNER_MODE: dstack
+      DSTACK_STRICT: "true"
+      MODEL_MODE: near_private
+      MODEL_SERVER_URL: http://127.0.0.1:8000
+      INFERENCE_PROVIDER: near_private
+      NEAR_API_KEY: ${NEAR_API_KEY}
+      NEAR_COMPLETIONS_BASE: ${NEAR_COMPLETIONS_BASE:-https://qwen3-30b.completions.near.ai/v1}
+      NEAR_MODEL_SLUG: ${NEAR_MODEL_SLUG:-qwen3-30b}
+      SANDBOX_MANAGER_URL: http://sandbox-manager:8091
+      MODEL_PROXY_URL: http://127.0.0.1:8080
+      RUNNER_HASH: ${RUNNER_HASH:-sha256:skillvault-tee-runner-v2}
+      VERIFIER_HASH: ${VERIFIER_HASH:-sha256:skillvault-verifier-v2}
+      MODEL_HASH: ${MODEL_HASH:-sha256:near-qwen3-30b}
+    depends_on:
+      - sandbox-manager
+    command: >
+      sh -c "pip install -q fastapi uvicorn httpx pydantic pydantic-settings cryptography python-pptx &&
+      pip install -q /app/services/model-server /app/services/tee-runner 2>/dev/null || true &&
+      uvicorn model_server.main:app --host 127.0.0.1 --port 8000 &
+      uvicorn tee_runner.main:app --host 0.0.0.0 --port 8080"
+
+volumes:
+  sandbox_data:

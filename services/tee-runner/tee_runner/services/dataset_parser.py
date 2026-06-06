@@ -2,6 +2,11 @@ import json
 from dataclasses import dataclass
 
 from tee_runner.evaluation.types import GroundTruth, ScoreWeights
+from tee_runner.services.papers_zip import (
+    SLIDE_TASK_PROMPT,
+    is_papers_zip,
+    papers_zip_transcripts,
+)
 
 
 @dataclass
@@ -15,10 +20,14 @@ class EvaluationDataset:
     transcripts: list[TranscriptSample]
     ground_truth: dict[str, GroundTruth]
     weights: ScoreWeights
+    evaluation_type: str = "redaction"
 
 
 def parse_transcripts(dataset_bytes: bytes) -> list[dict[str, str]]:
     """Parse transcript samples for inference (simple formats supported)."""
+    if is_papers_zip(dataset_bytes):
+        return papers_zip_transcripts(dataset_bytes)
+
     text = dataset_bytes.decode("utf-8").strip()
     if not text:
         raise ValueError("Dataset is empty")
@@ -47,6 +56,25 @@ def parse_dataset(dataset_bytes: bytes) -> list[dict[str, str]]:
 
 
 def parse_evaluation_dataset(dataset_bytes: bytes) -> EvaluationDataset:
+    if is_papers_zip(dataset_bytes):
+        return EvaluationDataset(
+            transcripts=[TranscriptSample(id="slides_from_papers", content=SLIDE_TASK_PROMPT)],
+            ground_truth={
+                "slides_from_papers": GroundTruth(
+                    must_include=["slide"],
+                    must_not_leak=["SKILLVAULT_CANARY"],
+                    must_remove_attribution=[],
+                )
+            },
+            weights=ScoreWeights(
+                must_not_leak=0.35,
+                must_include=0.25,
+                attribution_removal=0.1,
+                utility=0.3,
+            ),
+            evaluation_type="agent",
+        )
+
     text = dataset_bytes.decode("utf-8").strip()
     if not text:
         raise ValueError("Dataset is empty")
@@ -80,6 +108,7 @@ def parse_evaluation_dataset(dataset_bytes: bytes) -> EvaluationDataset:
 
     weights = ScoreWeights()
     eval_config = parsed.get("eval_config", {})
+    evaluation_type = "redaction"
     if isinstance(eval_config, dict):
         raw_weights = eval_config.get("weights", {})
         if isinstance(raw_weights, dict):
@@ -91,16 +120,22 @@ def parse_evaluation_dataset(dataset_bytes: bytes) -> EvaluationDataset:
                 ),
                 utility=float(raw_weights.get("utility", weights.utility)),
             )
+        raw_eval_type = eval_config.get("evaluation_type")
+        if isinstance(raw_eval_type, str) and raw_eval_type:
+            evaluation_type = raw_eval_type
 
     return EvaluationDataset(
         transcripts=transcripts,
         ground_truth=ground_truth,
         weights=weights,
+        evaluation_type=evaluation_type,
     )
 
 
 def parse_skill(skill_bytes: bytes) -> str:
-    return skill_bytes.decode("utf-8")
+    from tee_runner.services.package_loader import parse_skill_package
+
+    return parse_skill_package(skill_bytes).skill_md
 
 
 def _normalize_transcript(item: dict | str, index: int) -> dict[str, str]:
