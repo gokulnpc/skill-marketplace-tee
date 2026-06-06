@@ -292,7 +292,7 @@ The public URL usually stays the same; confirm with `phala cvms get skillvault-t
 
 Web service: `NEXT_PUBLIC_API_URL` = your Railway API URL.
 
-Also commit **`ari-portable-skill.zip`** at repo root so the API can seed the `ari-juels` listing on Railway.
+Also commit **`apps/api/seed/ari-portable-skill.zip`** so the Railway API service (watched path `apps/api/**`) seeds the `ari-juels` listing on deploy.
 
 ### Smoke test
 

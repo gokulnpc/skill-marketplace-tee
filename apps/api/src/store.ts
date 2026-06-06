@@ -1,5 +1,5 @@
 import { createHash, randomUUID } from "node:crypto";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -10,6 +10,15 @@ import { skillStorage } from "./skill-storage.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = join(__dirname, "../../..");
+const API_ROOT = join(__dirname, "..");
+
+function resolveAriPortableZipPath(): string | null {
+  const candidates = [
+    join(API_ROOT, "seed/ari-portable-skill.zip"),
+    join(REPO_ROOT, "ari-portable-skill.zip"),
+  ];
+  return candidates.find((path) => existsSync(path)) ?? null;
+}
 
 export interface StoredSkill extends SkillListing {
   /** @deprecated Legacy plaintext; new uploads use storage_ref only */
@@ -246,7 +255,8 @@ export class MarketplaceStore {
   }
 
   private seedAriJuelsSkill(): void {
-    const zipPath = join(REPO_ROOT, "ari-portable-skill.zip");
+    const zipPath = resolveAriPortableZipPath();
+    if (!zipPath) return;
     try {
       const packageBytes = readFileSync(zipPath);
       const parsed = parseSkillZip(packageBytes, {

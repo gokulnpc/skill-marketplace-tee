@@ -9,7 +9,11 @@ from tee_runner.crypto.envelope import encrypt_envelope
 from tee_runner.services.package_loader import extract_zip_to_map, parse_skill_package
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
-ARI_ZIP = REPO_ROOT / "ari-portable-skill.zip"
+ARI_ZIP_CANDIDATES = [
+    REPO_ROOT / "apps" / "api" / "seed" / "ari-portable-skill.zip",
+    REPO_ROOT / "ari-portable-skill.zip",
+]
+ARI_ZIP = next((p for p in ARI_ZIP_CANDIDATES if p.exists()), ARI_ZIP_CANDIDATES[0])
 ARI_DATASET = REPO_ROOT / "skills" / "sample-datasets" / "ari-juels" / "demo_eval_dataset.json"
 
 

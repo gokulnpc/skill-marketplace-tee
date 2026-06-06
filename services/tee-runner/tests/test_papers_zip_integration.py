@@ -12,7 +12,11 @@ from tee_runner.services.dataset_parser import parse_evaluation_dataset
 from tee_runner.services.papers_zip import extract_papers_zip, is_papers_zip
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
-ARI_ZIP = REPO_ROOT / "ari-portable-skill.zip"
+ARI_ZIP_CANDIDATES = [
+    REPO_ROOT / "apps" / "api" / "seed" / "ari-portable-skill.zip",
+    REPO_ROOT / "ari-portable-skill.zip",
+]
+ARI_ZIP = next((p for p in ARI_ZIP_CANDIDATES if p.exists()), ARI_ZIP_CANDIDATES[0])
 
 
 def _make_papers_zip() -> bytes:
