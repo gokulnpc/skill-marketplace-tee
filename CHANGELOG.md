@@ -9,6 +9,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ### Added
 
 - **Ari Juels demo (frontend + E2E):** Marketplace seeds `ari-juels` from `ari-portable-skill.zip`; catalog entry with agent/slides copy.
+- Commit `ari-portable-skill.zip` at repo root so Railway API seeds the Ari listing on deploy.
 - Buyer evaluate flow accepts **papers.zip** for agent skills (`PapersZipStep` with client-side validation and commitment hash).
 - Papers zip dataset format in tee-runner: safe extract → single slide-generation agent task → PPTX artifact export.
 - Agent tools: `list_papers`, `read_paper`, `generate_slides_pptx` (python-pptx) in builtin harness and sandbox agent loop.
