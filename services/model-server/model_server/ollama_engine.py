@@ -8,13 +8,16 @@ def ollama_chat_completion(
     messages: list[dict[str, str]],
     temperature: float,
     timeout: float = 300.0,
+    json_mode: bool = False,
 ) -> dict:
-    payload = {
+    payload: dict = {
         "model": model,
         "messages": messages,
         "stream": False,
         "options": {"temperature": temperature},
     }
+    if json_mode:
+        payload["format"] = "json"
     with httpx.Client(base_url=base_url.rstrip("/"), timeout=timeout) as client:
         response = client.post("/api/chat", json=payload)
         response.raise_for_status()

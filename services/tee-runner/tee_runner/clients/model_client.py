@@ -26,6 +26,7 @@ class ModelClient:
             "model": self._model,
             "messages": messages,
             "temperature": temperature,
+            "response_format": {"type": "json_object"},
         }
         if self._client is not None:
             response = self._client.post("/v1/chat/completions", json=payload)

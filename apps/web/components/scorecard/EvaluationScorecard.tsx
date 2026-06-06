@@ -12,7 +12,11 @@ interface EvaluationViewModel {
   skillScore: number;
   uplift: number;
   passed: boolean;
-  samples: Array<{ transcript_id: string; approved_output?: string | null }>;
+  samples: Array<{
+    transcript_id: string;
+    approved_output?: string | null;
+    leakage_reasons?: string[];
+  }>;
   receipt: Record<string, unknown> & {
     receipt_id: string;
     runner_hash: string;
@@ -83,7 +87,10 @@ export function EvaluationScorecard({
             <div key={sample.transcript_id}>
               <p className="text-sm text-muted">{sample.transcript_id}</p>
               <pre className="mt-2 overflow-x-auto rounded-md bg-black/30 p-3 text-xs">
-                {sample.approved_output ?? "Blocked by leakage guard"}
+                {sample.approved_output ??
+                  (sample.leakage_reasons?.length
+                    ? `Blocked: ${sample.leakage_reasons.join(", ")}`
+                    : "Blocked by leakage guard")}
               </pre>
             </div>
           ))}

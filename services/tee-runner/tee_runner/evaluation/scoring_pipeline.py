@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-from tee_runner.evaluation.leakage_guard import sanitize_for_export
+from tee_runner.evaluation.leakage_guard import export_block_reasons, sanitize_for_export
 from tee_runner.evaluation.redaction_verifier import score_output
 from tee_runner.evaluation.types import GroundTruth, ScoreWeights
 
@@ -51,14 +51,11 @@ def evaluate_samples(
             result["with_skill_output"], skill_content, ground_truth
         )
         leakage_blocked = approved is None
-        leakage_reasons: list[str] = []
-        if leakage_blocked:
-            from tee_runner.evaluation.leakage_guard import check_outbound_leakage
-
-            check = check_outbound_leakage(
-                result["with_skill_output"], skill_content, ground_truth
-            )
-            leakage_reasons = check.blocked_reasons
+        leakage_reasons = (
+            export_block_reasons(result["with_skill_output"], skill_content, ground_truth)
+            if leakage_blocked
+            else []
+        )
 
         skill_score = 0.0 if leakage_blocked else skill_eval["score"]
 

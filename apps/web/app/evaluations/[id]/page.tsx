@@ -19,7 +19,11 @@ export default async function EvaluationScorecardPage({
           skill_score: number;
           uplift: number;
           passed: boolean;
-          samples?: Array<{ transcript_id: string; approved_output?: string | null }>;
+          samples?: Array<{
+            transcript_id: string;
+            approved_output?: string | null;
+            leakage_reasons?: string[];
+          }>;
         }
       | undefined;
     const receipt = job.receipt as

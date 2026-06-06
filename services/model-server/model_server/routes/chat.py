@@ -17,12 +17,14 @@ def chat_completions(request: ChatCompletionRequest) -> dict:
         return generate_mock_completion(messages, request.model)
 
     if settings.model_mode == "ollama":
+        json_mode = request.response_format is not None and request.response_format.type == "json_object"
         return ollama_chat_completion(
             base_url=settings.ollama_base_url,
             model=request.model,
             messages=messages,
             temperature=request.temperature,
             timeout=settings.ollama_timeout,
+            json_mode=json_mode,
         )
 
     raise HTTPException(

@@ -2,6 +2,7 @@ import json
 import re
 from dataclasses import dataclass
 
+from tee_runner.evaluation.redaction_verifier import flatten_output_text, parse_model_output
 from tee_runner.evaluation.types import GroundTruth
 
 
@@ -57,12 +58,29 @@ def check_outbound_leakage(
     return LeakageCheckResult(allowed=len(blocked) == 0, blocked_reasons=sorted(set(blocked)))
 
 
+def export_block_reasons(
+    output_text: str,
+    skill_content: str,
+    ground_truth: GroundTruth,
+) -> list[str]:
+    parsed = parse_model_output(output_text)
+    if parsed is None:
+        return ["invalid_json"]
+
+    blob = flatten_output_text(parsed)
+    check = check_outbound_leakage(blob, skill_content, ground_truth)
+    if not check.allowed:
+        return check.blocked_reasons
+    return []
+
+
 def sanitize_for_export(output_text: str, skill_content: str, ground_truth: GroundTruth) -> str | None:
-    result = check_outbound_leakage(output_text, skill_content, ground_truth)
-    if not result.allowed:
+    parsed = parse_model_output(output_text)
+    if parsed is None:
         return None
-    try:
-        parsed = json.loads(output_text)
-    except json.JSONDecodeError:
+
+    blob = flatten_output_text(parsed)
+    result = check_outbound_leakage(blob, skill_content, ground_truth)
+    if not result.allowed:
         return None
     return json.dumps(parsed, indent=2)
