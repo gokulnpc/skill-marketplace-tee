@@ -26,6 +26,7 @@ if settings.sandbox_manager_url:
 inference_service = AgentEvaluationService(
     model_client=model_client,
     sandbox_client=sandbox_client,
+    use_sandbox_for_agent=settings.use_sandbox_for_agent,
 )
 evaluation_service = EvaluationService()
 

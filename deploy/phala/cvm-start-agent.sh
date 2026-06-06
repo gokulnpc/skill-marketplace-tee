@@ -38,6 +38,12 @@ export MODEL_PROXY_URL="${MODEL_PROXY_URL:-http://127.0.0.1:${TEE_PORT}}"
 uvicorn sandbox_manager.main:app --host 127.0.0.1 --port "${SANDBOX_PORT}" &
 SANDBOX_PID=$!
 
+log "Waiting for sandbox-manager on :${SANDBOX_PORT}..."
+until curl -sf "http://127.0.0.1:${SANDBOX_PORT}/health" >/dev/null; do
+  sleep 1
+done
+log "Sandbox-manager is ready"
+
 log "Starting model-server on :${MODEL_PORT} (MODEL_MODE=${MODEL_MODE:-near_private})..."
 uvicorn model_server.main:app --host 127.0.0.1 --port "${MODEL_PORT}" &
 MODEL_PID=$!

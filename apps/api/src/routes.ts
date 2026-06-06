@@ -311,10 +311,11 @@ app.post("/v1/evaluations/:jobId/dataset", async (c) => {
     return c.json({ ...updated, settlement });
   } catch (error) {
     store.releaseReservation(job.job_id);
+    const detail = error instanceof Error ? error.message : "Evaluation failed";
     store.updateJob(job.job_id, {
       status: "failed",
-      error: error instanceof Error ? error.message : "Evaluation failed",
+      error: detail,
     });
-    return c.json({ error: "Evaluation pipeline failed" }, 502);
+    return c.json({ error: "Evaluation pipeline failed", detail }, 502);
   }
 });

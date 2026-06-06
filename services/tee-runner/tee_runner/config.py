@@ -16,6 +16,7 @@ class Settings(BaseSettings):
     model_name: str = "llama3.1:8b"
     receipt_signing_key_pem: str | None = None
     sandbox_manager_url: str | None = None
+    use_sandbox_for_agent: bool = False
     inference_provider: str = "mock"
     near_completions_base: str = "https://qwen3-30b.completions.near.ai/v1"
     near_model_slug: str = "qwen3-30b"
