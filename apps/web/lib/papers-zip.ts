@@ -19,7 +19,7 @@ export function listZipEntryNames(buffer: ArrayBuffer): string[] {
   const view = new DataView(buffer);
   const names: string[] = [];
   let offset = 0;
-  while offset + 30 < view.byteLength) {
+  while (offset + 30 < view.byteLength) {
     if (view.getUint32(offset, true) !== 0x04034b50) break;
     const nameLen = readUint16(view, offset + 26);
     const extraLen = readUint16(view, offset + 28);
