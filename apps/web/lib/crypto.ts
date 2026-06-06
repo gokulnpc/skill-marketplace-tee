@@ -34,7 +34,11 @@ export async function encryptEnvelope(publicKeyPem: string, plaintext: Uint8Arra
     "decrypt",
   ]);
   const nonce = crypto.getRandomValues(new Uint8Array(12));
-  const ciphertext = await crypto.subtle.encrypt({ name: "AES-GCM", iv: nonce }, aesKey, plaintext);
+  const ciphertext = await crypto.subtle.encrypt(
+    { name: "AES-GCM", iv: nonce },
+    aesKey,
+    plaintext as BufferSource,
+  );
   const rawAesKey = await crypto.subtle.exportKey("raw", aesKey);
   const encryptedKey = await crypto.subtle.encrypt({ name: "RSA-OAEP" }, publicKey, rawAesKey);
 

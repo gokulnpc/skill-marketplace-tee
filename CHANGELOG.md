@@ -6,8 +6,14 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Changed
+
+- Refactored `apps/web` to the warm-paper editorial design from the Tee prototype: Instrument Serif / Inter / JetBrains Mono, shared primitives, and all marketplace screens (browse, skill detail, evaluate flow, running, scorecard, upload, seller, licenses) as Next.js App Router pages wired to the marketplace API.
+- Removed the standalone `Tee/` Babel prototype and legacy Tailwind scorecard components.
+
 ### Added
 
+- `ScorecardScreen` — warm-paper editorial scorecard with editorial/dashboard/proof-first variations, wired to real evaluation API data.
 - Phala production path: `deploy/phala/` Docker + compose, Ollama backend, real dstack attestation adapter.
 - `deploy/phala/PHALA_DEPLOY.md` and `.env.example` for CVM deployment.
 

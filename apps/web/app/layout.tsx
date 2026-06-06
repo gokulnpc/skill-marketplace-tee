@@ -1,6 +1,28 @@
+import { Instrument_Serif, Inter, JetBrains_Mono } from "next/font/google";
+
+import { TopBar } from "@/components/layout/Shell";
 import "./globals.css";
 import type { Metadata } from "next";
-import Link from "next/link";
+
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-inter",
+  display: "swap",
+});
+
+const instrumentSerif = Instrument_Serif({
+  subsets: ["latin"],
+  weight: "400",
+  style: ["normal", "italic"],
+  variable: "--font-instrument-serif",
+  display: "swap",
+});
+
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ["latin"],
+  variable: "--font-jetbrains-mono",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   title: "SkillVault TEE",
@@ -9,20 +31,13 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    <html
+      lang="en"
+      className={`${inter.variable} ${instrumentSerif.variable} ${jetbrainsMono.variable}`}
+    >
       <body>
-        <header className="border-b border-border">
-          <div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-4">
-            <Link href="/" className="text-lg font-semibold">
-              SkillVault TEE
-            </Link>
-            <nav className="flex gap-4 text-sm">
-              <Link href="/">Browse</Link>
-              <Link href="/upload">Upload Skill</Link>
-            </nav>
-          </div>
-        </header>
-        <main className="mx-auto max-w-5xl px-6 py-8">{children}</main>
+        <TopBar />
+        {children}
       </body>
     </html>
   );

@@ -1,15 +1,15 @@
 import { notFound } from "next/navigation";
 
-import { SkillDetailScreen } from "@/components/screens/SkillDetailScreen";
+import { EvaluateFlow } from "@/components/screens/EvaluateFlow";
 import { enrichSkill } from "@/lib/catalog";
 import { fetchSkill } from "@/lib/api";
 
-export default async function SkillDetailPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function EvaluatePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
 
   try {
     const skill = enrichSkill(await fetchSkill(id));
-    return <SkillDetailScreen skill={skill} />;
+    return <EvaluateFlow skill={skill} />;
   } catch {
     notFound();
   }

@@ -110,4 +110,34 @@ export async function uploadSkill(payload: {
   return response.json();
 }
 
+export interface License {
+  license_id: string;
+  buyer_id: string;
+  skill_id: string;
+  job_id: string;
+  receipt_id: string;
+  issued_at: string;
+}
+
+export async function fetchBuyerBalance(buyerId: string): Promise<number> {
+  const response = await fetch(`${API_URL}/v1/buyers/${buyerId}/balance`, { cache: "no-store" });
+  if (!response.ok) throw new Error("Failed to load balance");
+  const data = await response.json();
+  return data.balance;
+}
+
+export async function fetchSellerBalance(sellerId: string): Promise<number> {
+  const response = await fetch(`${API_URL}/v1/sellers/${sellerId}/balance`, { cache: "no-store" });
+  if (!response.ok) throw new Error("Failed to load seller balance");
+  const data = await response.json();
+  return data.balance;
+}
+
+export async function fetchBuyerLicenses(buyerId: string): Promise<License[]> {
+  const response = await fetch(`${API_URL}/v1/buyers/${buyerId}/licenses`, { cache: "no-store" });
+  if (!response.ok) throw new Error("Failed to load licenses");
+  const data = await response.json();
+  return data.licenses;
+}
+
 export { API_URL };

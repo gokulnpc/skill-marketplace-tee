@@ -4,6 +4,25 @@ Record of AI-assisted development sessions. Append new entries at the top.
 
 ---
 
+## 2026-06-05 — Frontend refactor: Tee prototype → Next.js
+
+**Scope:** Migrate warm-paper editorial UI from `Tee/` Babel prototype into `apps/web` with App Router, TypeScript, and live API wiring.
+
+**Created/Updated:**
+
+- `apps/web/app/globals.css` — design tokens and animations from `sv-styles.css`
+- `apps/web/components/shared/`, `components/layout/Shell.tsx` — Icon, Pill, Badge, HashRow, TopBar, Footer
+- `apps/web/components/screens/` — Browse, SkillDetail, EvaluateFlow, Running, Scorecard, Upload, Seller, Licenses
+- `apps/web/lib/catalog.ts`, `constants.ts`, `format.ts` — display enrichment and shared constants
+- `apps/web/lib/api.ts` — buyer balance, seller balance, licenses endpoints
+- Routes: `/`, `/skills/[id]`, `/skills/[id]/evaluate`, `/evaluations/[id]/running`, `/evaluations/[id]`, `/upload`, `/seller`, `/licenses`
+
+**Removed:** `Tee/` prototype folder, legacy Tailwind scorecard components.
+
+**Outcome:** `pnpm --filter @skillvault/web build` passes; evaluate flow calls createEvaluation → encrypt → submitDataset; scorecard renders real job/receipt data.
+
+---
+
 ## 2026-06-05 — Phase 6: Demo Polish
 
 **Scope:** Demo-ready scorecard UI, receipt verification, end-to-end demo script.
