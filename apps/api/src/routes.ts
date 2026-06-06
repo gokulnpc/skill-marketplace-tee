@@ -42,7 +42,7 @@ app.post("/v1/skills/upload", async (c) => {
     }
     const sellerId = String(form.seller_id ?? "");
     const price = Number(form.price ?? 0);
-    const publish = form.publish === "true" || form.publish === true;
+    const publish = String(form.publish ?? "") === "true";
     if (!sellerId || !Number.isFinite(price) || price <= 0) {
       return c.json({ error: "Invalid seller_id or price" }, 400);
     }

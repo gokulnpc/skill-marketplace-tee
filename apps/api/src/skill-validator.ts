@@ -1,6 +1,4 @@
-import type { SkillMetadata } from "@skillvault/shared";
-
-import type { ParsedSkillPackage } from "./skill-package.js";
+import type { ParsedSkillPackage, SkillMetadata } from "@skillvault/shared";
 import { validateSkillZipPackage } from "./skill-package.js";
 
 export function validateSkillPackage(skillContent: string, metadata: SkillMetadata): string[] {
