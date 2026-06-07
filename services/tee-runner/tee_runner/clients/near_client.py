@@ -8,8 +8,15 @@ from typing import Any
 import httpx
 
 
+def near_api_root(base_url: str) -> str:
+    base = base_url.rstrip("/")
+    if base.endswith("/v1"):
+        return base
+    return f"{base}/v1"
+
+
 def fetch_near_attestation(base_url: str, timeout: float = 30.0) -> dict[str, Any]:
-    url = base_url.rstrip("/") + "/v1/attestation/report"
+    url = f"{near_api_root(base_url)}/attestation/report"
     try:
         with httpx.Client(timeout=timeout) as client:
             response = client.get(url, params={"include_tls_fingerprint": "true"})

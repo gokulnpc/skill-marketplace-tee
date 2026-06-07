@@ -1,4 +1,5 @@
 from fastapi import APIRouter, HTTPException
+import httpx
 
 from model_server.config import get_settings
 from model_server.mock_engine import generate_mock_completion
@@ -31,16 +32,23 @@ def chat_completions(request: ChatCompletionRequest) -> dict:
 
     if settings.model_mode == "near_private":
         tools = [t.model_dump() for t in request.tools] if request.tools else None
-        if not tools and request.response_format and request.response_format.type == "json_object":
-            pass  # json mode via payload below
-        return near_chat_completion(
-            base_url=settings.near_completions_base,
-            model=settings.near_model_slug or request.model,
-            messages=messages,
-            temperature=request.temperature,
-            tools=tools,
-            timeout=settings.near_timeout,
-        )
+        try:
+            return near_chat_completion(
+                base_url=settings.near_completions_base,
+                model=settings.near_model_slug or request.model,
+                messages=messages,
+                temperature=request.temperature,
+                tools=tools,
+                timeout=settings.near_timeout,
+            )
+        except RuntimeError as exc:
+            raise HTTPException(status_code=503, detail=str(exc)) from exc
+        except httpx.HTTPStatusError as exc:
+            body = exc.response.text[:500]
+            raise HTTPException(
+                status_code=502,
+                detail=f"NEAR inference failed ({exc.response.status_code}): {body}",
+            ) from exc
 
     raise HTTPException(
         status_code=501,
