@@ -31,7 +31,7 @@ def near_chat_completion(
     messages: list[dict[str, Any]],
     temperature: float = 0.0,
     tools: list[dict[str, Any]] | None = None,
-    timeout: float = 120.0,
+    timeout: float = 300.0,
 ) -> dict[str, Any]:
     payload: dict[str, Any] = {
         "model": model,

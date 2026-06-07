@@ -14,6 +14,7 @@ class Settings(BaseSettings):
     model_hash: str = "sha256:mock-llama-3.1-8b-instruct"
     model_server_url: str = "http://localhost:8000"
     model_name: str = "llama3.1:8b"
+    model_client_timeout: float = 300.0
     receipt_signing_key_pem: str | None = None
     sandbox_manager_url: str | None = None
     use_sandbox_for_agent: bool = False

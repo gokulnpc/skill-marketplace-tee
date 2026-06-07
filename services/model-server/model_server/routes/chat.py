@@ -43,6 +43,11 @@ def chat_completions(request: ChatCompletionRequest) -> dict:
             )
         except RuntimeError as exc:
             raise HTTPException(status_code=503, detail=str(exc)) from exc
+        except httpx.TimeoutException as exc:
+            raise HTTPException(
+                status_code=504,
+                detail=f"NEAR inference timed out after {settings.near_timeout}s: {exc}",
+            ) from exc
         except httpx.HTTPStatusError as exc:
             body = exc.response.text[:500]
             raise HTTPException(

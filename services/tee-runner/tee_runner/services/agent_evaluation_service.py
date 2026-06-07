@@ -138,6 +138,16 @@ class AgentEvaluationService:
                             }
                         }
                 elif runtime == "builtin":
+                    # #region agent log
+                    from tee_runner.debug_log import agent_log
+
+                    agent_log(
+                        "agent_evaluation_service.py:run_session_inference",
+                        "baseline agent start",
+                        {"session_id": record.session_id, "sample_id": sample["id"], "slide_task": slide_task},
+                        "C",
+                    )
+                    # #endregion
                     baseline_output, baseline_metrics = run_builtin_agent(
                         self._model_client,
                         skill_content="",
@@ -150,6 +160,28 @@ class AgentEvaluationService:
                         workspace=workspace,
                         slide_task=slide_task,
                     )
+                    # #region agent log
+                    agent_log(
+                        "agent_evaluation_service.py:run_session_inference",
+                        "baseline agent done",
+                        {
+                            "session_id": record.session_id,
+                            "iterations": baseline_metrics.iterations,
+                            "tool_calls": baseline_metrics.tool_calls,
+                        },
+                        "C",
+                    )
+                    # #endregion
+                    use_slide_hybrid = slide_task and evaluation_type == "agent"
+                    if use_slide_hybrid:
+                        # #region agent log
+                        agent_log(
+                            "agent_evaluation_service.py:run_session_inference",
+                            "slide_hybrid start",
+                            {"session_id": record.session_id},
+                            "C",
+                        )
+                        # #endregion
                     with_skill_output, skill_metrics = (
                         run_slide_task(
                             self._model_client,
@@ -173,6 +205,19 @@ class AgentEvaluationService:
                             slide_task=slide_task,
                         )
                     )
+                    # #region agent log
+                    agent_log(
+                        "agent_evaluation_service.py:run_session_inference",
+                        "with_skill done",
+                        {
+                            "session_id": record.session_id,
+                            "harness_mode": "slide_hybrid" if use_slide_hybrid else "builtin_agent",
+                            "iterations": skill_metrics.iterations,
+                            "artifact": bool(skill_metrics.artifact_path),
+                        },
+                        "C",
+                    )
+                    # #endregion
                     total_tool_calls += skill_metrics.tool_calls
                     total_iterations += skill_metrics.iterations
                     if skill_metrics.artifact_path:

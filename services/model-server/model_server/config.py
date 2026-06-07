@@ -27,7 +27,7 @@ class Settings(BaseSettings):
     near_completions_base: str = "https://qwen3-30b.completions.near.ai/v1"
     # Must match https://completions.near.ai/endpoints for this subdomain.
     near_model_slug: str = "Qwen/Qwen3-30B-A3B-Instruct-2507"
-    near_timeout: float = 120.0
+    near_timeout: float = 300.0
 
 
 @lru_cache

@@ -145,6 +145,20 @@ class SessionService:
         except ValueError as exc:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
         except Exception as exc:
+            # #region agent log
+            from tee_runner.debug_log import agent_log
+
+            agent_log(
+                "session_service.py:run_inference",
+                "inference failed",
+                {
+                    "session_id": session_id,
+                    "error_type": type(exc).__name__,
+                    "error": str(exc)[:500],
+                },
+                "A",
+            )
+            # #endregion
             raise HTTPException(
                 status_code=status.HTTP_502_BAD_GATEWAY,
                 detail=f"Model inference failed: {exc}",

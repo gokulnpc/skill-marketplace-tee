@@ -17,7 +17,11 @@ from tee_runner.tee.factory import create_tee_adapter
 settings = get_settings()
 store = SessionStore()
 tee_adapter = create_tee_adapter(settings)
-model_client = ModelClient(base_url=settings.model_server_url, model=settings.model_name)
+model_client = ModelClient(
+    base_url=settings.model_server_url,
+    model=settings.model_name,
+    timeout=settings.model_client_timeout,
+)
 
 sandbox_client = None
 if settings.sandbox_manager_url:
