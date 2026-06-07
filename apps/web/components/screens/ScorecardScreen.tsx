@@ -9,7 +9,7 @@ import { Icon } from "@/components/shared/Icon";
 import { Badge, Pill } from "@/components/shared/Pill";
 import { API_URL, type EvaluationJob } from "@/lib/api";
 import type { DisplaySkill } from "@/lib/catalog";
-import { pct, short, upl } from "@/lib/format";
+import { displayScore, pct, short, upl } from "@/lib/format";
 
 type Variation = "editorial" | "dashboard" | "proof";
 
@@ -188,7 +188,7 @@ function SubScoreBar({ label, value }: { label: string; value: number }) {
         <div
           style={{
             height: "100%",
-            width: `${value * 100}%`,
+            width: `${displayScore(value) * 100}%`,
             background: "var(--accent)",
             borderRadius: 99,
           }}
@@ -605,7 +605,7 @@ function ScorecardEditorial({
                 <Icon name="check" size={12} stroke={2.6} /> {view.passed ? "PASS" : "FAIL"}
               </Badge>
               <span className="mono" style={{ fontSize: 11.5, color: "var(--mute)" }}>
-                {view.skillScore.toFixed(2)} ≥ {view.threshold.toFixed(2)} threshold
+                {displayScore(view.skillScore).toFixed(2)} ≥ {view.threshold.toFixed(2)} threshold
               </span>
             </div>
             <div className="label" style={{ fontSize: 10 }}>
@@ -651,7 +651,7 @@ function ScorecardEditorial({
               gap: 14,
             }}
           >
-            <ScoreDonut value={view.skillScore} threshold={view.threshold} size={180} />
+            <ScoreDonut value={displayScore(view.skillScore)} threshold={view.threshold} size={180} />
             <div
               className="mono"
               style={{ fontSize: 11, color: "var(--mute)", textAlign: "center", lineHeight: 1.6 }}
@@ -757,7 +757,7 @@ function ScorecardDashboard({
               justifyContent: "center",
             }}
           >
-            <ScoreDonut value={view.skillScore} threshold={view.threshold} size={130} />
+            <ScoreDonut value={displayScore(view.skillScore)} threshold={view.threshold} size={130} />
           </div>
         </div>
         <ProofPanel view={view} compact />
@@ -928,7 +928,7 @@ function ScorecardProofFirst({
         >
           <h3 style={{ margin: "0 0 16px", fontSize: 16, fontWeight: 600 }}>Score breakdown</h3>
           <div style={{ display: "flex", gap: 24, alignItems: "center" }}>
-            <ScoreDonut value={view.skillScore} threshold={view.threshold} size={120} />
+            <ScoreDonut value={displayScore(view.skillScore)} threshold={view.threshold} size={120} />
             <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 13 }}>
               <SubScoreList sub={view.sub} />
             </div>

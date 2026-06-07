@@ -1,5 +1,14 @@
+/** Raw scores may reach 1.0 internally; never present as a perfect 100% in the UI. */
+const DISPLAY_SCORE_MAX = 0.999;
+
+export function displayScore(v: number): number {
+  if (!Number.isFinite(v)) return 0;
+  if (v <= 0) return 0;
+  return Math.min(v, DISPLAY_SCORE_MAX);
+}
+
 export function pct(v: number): string {
-  return `${Math.round(v * 1000) / 10}%`;
+  return `${Math.round(displayScore(v) * 1000) / 10}%`;
 }
 
 export function upl(v: number): string {

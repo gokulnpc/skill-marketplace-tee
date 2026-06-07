@@ -169,17 +169,7 @@ app.post("/v1/evaluations", async (c) => {
     return c.json({ error: "Skill not available" }, 404);
   }
 
-  if (!store.canAfford(parsed.data.buyer_id, skill.price)) {
-    return c.json({ error: "Insufficient balance for evaluation" }, 402);
-  }
-
   const job = store.createJob(parsed.data);
-  try {
-    store.reserveFunds(parsed.data.buyer_id, job.job_id, skill.price);
-  } catch {
-    store.updateJob(job.job_id, { status: "failed", error: "Insufficient balance" });
-    return c.json({ error: "Insufficient balance for evaluation" }, 402);
-  }
 
   try {
     const session = await teeClient.createSession(skill.skill_id, parsed.data.threshold);

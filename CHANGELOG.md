@@ -28,6 +28,8 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
+- Scorecard and marketplace percentages cap at **99.9%** display (`displayScore`) so evaluations never show a perfect 100%.
+- Demo evaluations no longer require buyer balance upfront; settlement deducts down to zero without blocking.
 - **Ari slides hybrid pipeline:** Papers-zip evals use deterministic paper reads + single NEAR JSON call + PPTX generation instead of relying on OpenAI tool_calls (fixes 0% score / no artifact on NEAR Qwen3).
 - Slide-task scoring weights PPTX artifact presence; leakage guard approves export when artifact exists.
 - Scorecard shows slides.pptx download and agent metrics even when eval did not pass threshold.

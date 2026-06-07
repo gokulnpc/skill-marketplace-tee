@@ -81,10 +81,7 @@ export class MarketplaceStore {
 
   deductBuyer(buyerId: string, amount: number): number {
     const current = this.getBalance(buyerId);
-    if (current < amount) {
-      throw new Error("Insufficient buyer balance for settlement");
-    }
-    const next = current - amount;
+    const next = Math.max(0, current - amount);
     this.buyerBalances.set(buyerId, next);
     return next;
   }
