@@ -32,6 +32,20 @@ export function verifyReceipt(
     errors.push("Receipt skill_id mismatch");
   }
   if (receipt.skill_hash !== skill.skill_hash) {
+    // #region agent log
+    fetch("http://127.0.0.1:7508/ingest/eedc47cb-18ae-496c-aade-076226a79a11", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "563348" },
+      body: JSON.stringify({
+        sessionId: "563348",
+        timestamp: Date.now(),
+        location: "settlement.ts:verifyReceipt",
+        message: "skill_hash mismatch",
+        data: { listing: skill.skill_hash, receipt: receipt.skill_hash, skill_id: skill.skill_id },
+        hypothesisId: "H6",
+      }),
+    }).catch(() => {});
+    // #endregion
     errors.push("Receipt skill_hash mismatch");
   }
   if (receipt.passed !== evaluation.passed) {

@@ -83,11 +83,16 @@ export function normalizeSkillZipPaths(files: Map<string, Buffer>): Map<string, 
   return rebased.size > 0 ? rebased : filtered;
 }
 
+export function compareTreeHashPaths(a: string, b: string): number {
+  if (a === b) return 0;
+  return a < b ? -1 : 1;
+}
+
 export function computeTreeHash(files: Map<string, Buffer>): string {
   const h = createHash("sha256");
   const paths = [...files.keys()]
     .filter(shouldIncludeInTreeHash)
-    .sort((a, b) => a.localeCompare(b));
+    .sort(compareTreeHashPaths);
   for (const relpath of paths) {
     const data = files.get(relpath);
     if (!data) continue;

@@ -1,11 +1,16 @@
 import { describe, expect, it } from "vitest";
 
-import { computeTreeHash, normalizeSkillZipPaths, normalizeZipPath, shouldIncludeInTreeHash } from "./skill-package.js";
+import { computeTreeHash, compareTreeHashPaths, normalizeSkillZipPaths, normalizeZipPath, shouldIncludeInTreeHash } from "./skill-package.js";
 
 describe("skill-package", () => {
   it("excludes adapters from tree hash", () => {
     expect(shouldIncludeInTreeHash("skill/SKILL.md")).toBe(true);
     expect(shouldIncludeInTreeHash("adapters/codex/foo.md")).toBe(false);
+  });
+
+  it("sorts paths with codepoint order (matches Python tee-runner)", () => {
+    const paths = ["README.md", "skill/knowledge/a.md", "skill/SKILL.md"].sort(compareTreeHashPaths);
+    expect(paths).toEqual(["README.md", "skill/SKILL.md", "skill/knowledge/a.md"]);
   });
 
   it("computes deterministic tree hash", () => {
