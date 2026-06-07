@@ -35,7 +35,7 @@ fi
 export MODEL_MODE="${MODEL_MODE:-near_private}"
 export INFERENCE_PROVIDER="${INFERENCE_PROVIDER:-near_private}"
 export NEAR_COMPLETIONS_BASE="${NEAR_COMPLETIONS_BASE:-https://qwen3-30b.completions.near.ai/v1}"
-export NEAR_MODEL_SLUG="${NEAR_MODEL_SLUG:-qwen3-30b}"
+export NEAR_MODEL_SLUG="${NEAR_MODEL_SLUG:-Qwen/Qwen3-30B-A3B-Instruct-2507}"
 export MODEL_SERVER_URL="${MODEL_SERVER_URL:-http://127.0.0.1:${MODEL_PORT}}"
 
 log "Starting sandbox-manager on :${SANDBOX_PORT}..."

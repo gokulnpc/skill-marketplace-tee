@@ -19,7 +19,7 @@ class Settings(BaseSettings):
     use_sandbox_for_agent: bool = False
     inference_provider: str = "mock"
     near_completions_base: str = "https://qwen3-30b.completions.near.ai/v1"
-    near_model_slug: str = "qwen3-30b"
+    near_model_slug: str = "Qwen/Qwen3-30B-A3B-Instruct-2507"
 
 
 @lru_cache

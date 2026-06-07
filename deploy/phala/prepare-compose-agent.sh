@@ -34,7 +34,7 @@ services:
       MODEL_SERVER_URL: http://127.0.0.1:8000
       NEAR_API_KEY: ${NEAR_API_KEY}
       NEAR_COMPLETIONS_BASE: ${NEAR_COMPLETIONS_BASE:-https://qwen3-30b.completions.near.ai/v1}
-      NEAR_MODEL_SLUG: ${NEAR_MODEL_SLUG:-qwen3-30b}
+      NEAR_MODEL_SLUG: ${NEAR_MODEL_SLUG:-Qwen/Qwen3-30B-A3B-Instruct-2507}
       USE_SANDBOX_FOR_AGENT: "false"
       MODEL_PROXY_URL: http://127.0.0.1:8080
       RUNNER_HASH: ${RUNNER_HASH:-sha256:skillvault-tee-runner-v2}

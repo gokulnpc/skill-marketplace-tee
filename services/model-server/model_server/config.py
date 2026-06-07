@@ -25,7 +25,8 @@ class Settings(BaseSettings):
     ollama_timeout: float = 300.0
     ollama_pull_on_start: bool = False
     near_completions_base: str = "https://qwen3-30b.completions.near.ai/v1"
-    near_model_slug: str = "qwen3-30b"
+    # Must match https://completions.near.ai/endpoints for this subdomain.
+    near_model_slug: str = "Qwen/Qwen3-30B-A3B-Instruct-2507"
     near_timeout: float = 120.0
 
 

@@ -67,5 +67,13 @@ class ModelClient:
         else:
             with httpx.Client(base_url=self._base_url, timeout=self._timeout) as client:
                 response = client.post(path, json=payload)
-        response.raise_for_status()
+        if response.is_error:
+            detail = response.text
+            try:
+                body = response.json()
+                if isinstance(body.get("detail"), str):
+                    detail = body["detail"]
+            except (json.JSONDecodeError, TypeError, AttributeError):
+                pass
+            raise RuntimeError(f"Model server {response.status_code}: {detail}") from None
         return response.json()
