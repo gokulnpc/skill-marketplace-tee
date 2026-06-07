@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-from tee_runner.evaluation.agent_verifier import score_agent_output
+from tee_runner.evaluation.agent_verifier import score_agent_output, score_slide_task_output
 from tee_runner.evaluation.leakage_guard import export_block_reasons, sanitize_for_export
 from tee_runner.evaluation.redaction_verifier import score_output
 from tee_runner.evaluation.types import GroundTruth, ScoreWeights
@@ -33,32 +33,68 @@ def aggregate_scores(scores: list[float]) -> float:
     return round(sum(scores) / len(scores), 4)
 
 
+def _has_slide_artifact(artifacts_meta: dict[str, dict] | None) -> bool:
+    meta = (artifacts_meta or {}).get("slides.pptx") or {}
+    return int(meta.get("size") or 0) > 0
+
+
 def evaluate_samples(
     inference_results: list[dict],
     ground_truth_map: dict[str, GroundTruth],
     skill_content: str,
     weights: ScoreWeights,
     evaluation_type: str = "redaction",
+    *,
+    slide_task: bool = False,
+    artifacts_meta: dict[str, dict] | None = None,
 ) -> EvaluationSummary:
     samples: list[SampleEvaluation] = []
-    score_fn = score_agent_output if evaluation_type == "agent" else score_output
+    has_artifact = _has_slide_artifact(artifacts_meta)
 
     for result in inference_results:
         transcript_id = result["transcript_id"]
         ground_truth = ground_truth_map.get(transcript_id, GroundTruth())
 
-        baseline_eval = score_fn(result["baseline_output"], ground_truth, weights)
-        skill_eval = score_fn(result["with_skill_output"], ground_truth, weights)
+        if slide_task and evaluation_type == "agent":
+            baseline_eval = score_agent_output(
+                result["baseline_output"], ground_truth, weights
+            )
+            skill_eval = score_slide_task_output(
+                result["with_skill_output"],
+                ground_truth,
+                weights,
+                artifacts_meta=artifacts_meta,
+            )
+        elif evaluation_type == "agent":
+            baseline_eval = score_agent_output(result["baseline_output"], ground_truth, weights)
+            skill_eval = score_agent_output(result["with_skill_output"], ground_truth, weights)
+        else:
+            baseline_eval = score_output(result["baseline_output"], ground_truth, weights)
+            skill_eval = score_output(result["with_skill_output"], ground_truth, weights)
 
         approved = sanitize_for_export(
-            result["with_skill_output"], skill_content, ground_truth
+            result["with_skill_output"],
+            skill_content,
+            ground_truth,
+            slide_task=slide_task,
+            artifacts_meta=artifacts_meta,
         )
         leakage_blocked = approved is None
         leakage_reasons = (
-            export_block_reasons(result["with_skill_output"], skill_content, ground_truth)
+            export_block_reasons(
+                result["with_skill_output"],
+                skill_content,
+                ground_truth,
+                slide_task=slide_task,
+                artifacts_meta=artifacts_meta,
+            )
             if leakage_blocked
             else []
         )
+
+        if leakage_blocked and has_artifact and leakage_reasons == ["invalid_json"]:
+            leakage_blocked = False
+            leakage_reasons = []
 
         skill_score = 0.0 if leakage_blocked else skill_eval["score"]
 

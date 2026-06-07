@@ -64,7 +64,8 @@ def test_ari_papers_zip_slide_eval(agent_client):
     infer_body = infer.json()
     metrics = infer_body.get("agent_metrics") or {}
     assert metrics.get("slide_task") is True
-    assert metrics.get("tool_calls", 0) >= 1
+    assert metrics.get("harness_mode") == "slide_hybrid"
+    assert metrics.get("artifact_generated") is True
 
     ev = agent_client.post(f"/v1/sessions/{session_id}/evaluate", json={})
     assert ev.status_code == 200
@@ -77,3 +78,35 @@ def test_ari_papers_zip_slide_eval(agent_client):
 
     fin = agent_client.post(f"/v1/sessions/{session_id}/finalize", json={})
     assert fin.status_code == 200
+
+
+@pytest.mark.skipif(not ARI_ZIP.exists(), reason="ari-portable-skill.zip not in repo")
+def test_near_like_prose_still_produces_slides(near_agent_client):
+    zip_bytes = ARI_ZIP.read_bytes()
+    papers_zip = _make_papers_zip()
+
+    create = near_agent_client.post("/v1/sessions", json={"skill_id": "ari-juels", "threshold": 0.3})
+    assert create.status_code == 201
+    session_id = create.json()["session_id"]
+    pub = near_agent_client.get(f"/v1/sessions/{session_id}/attestation").json()["ephemeral_public_key"]
+
+    skill_env = encrypt_envelope(pub, zip_bytes)
+    papers_env = encrypt_envelope(pub, papers_zip)
+
+    assert near_agent_client.post(f"/v1/sessions/{session_id}/inputs/skill", json=skill_env).status_code == 200
+    assert near_agent_client.post(f"/v1/sessions/{session_id}/inputs/dataset", json=papers_env).status_code == 200
+
+    infer = near_agent_client.post(f"/v1/sessions/{session_id}/inference", json={})
+    assert infer.status_code == 200
+    metrics = infer.json().get("agent_metrics") or {}
+    assert metrics.get("harness_mode") == "slide_hybrid"
+    assert metrics.get("artifact_generated") is True
+
+    ev = near_agent_client.post(f"/v1/sessions/{session_id}/evaluate", json={})
+    assert ev.status_code == 200
+    assert ev.json()["passed"] is True
+    assert ev.json().get("artifacts", {}).get("slides.pptx")
+
+    artifact = near_agent_client.get(f"/v1/sessions/{session_id}/artifacts/slides.pptx")
+    assert artifact.status_code == 200
+    assert artifact.content[:2] == b"PK"

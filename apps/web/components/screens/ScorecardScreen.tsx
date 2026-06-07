@@ -23,7 +23,17 @@ interface EvaluationData {
     transcript_id: string;
     approved_output?: string | null;
     approved?: boolean;
+    leakage_blocked?: boolean;
+    leakage_reasons?: string[];
   }>;
+  agent_metrics?: {
+    tool_calls?: number;
+    iterations_used?: number;
+    artifact_generated?: boolean;
+    harness_mode?: string;
+    slide_task?: boolean;
+  };
+  artifacts?: Record<string, { size?: number; sha256?: string }>;
 }
 
 interface ReceiptData extends Record<string, unknown> {
@@ -41,6 +51,7 @@ interface SampleView {
   transcript_id: string;
   approved: boolean;
   output: string | null;
+  leakageReasons: string[];
 }
 
 interface ScorecardView {
@@ -62,6 +73,8 @@ interface ScorecardView {
   };
   attestationQuote: string;
   sessionId: string;
+  agentMetrics: EvaluationData["agent_metrics"];
+  hasSlideArtifact: boolean;
 }
 
 function parseScorecardView(job: EvaluationJob): ScorecardView | null {
@@ -83,6 +96,7 @@ function parseScorecardView(job: EvaluationJob): ScorecardView | null {
     transcript_id: sample.transcript_id,
     approved: sample.approved ?? !!sample.approved_output,
     output: sample.approved_output ?? null,
+    leakageReasons: sample.leakage_reasons ?? [],
   }));
 
   const settlement = job.settlement;
@@ -107,6 +121,8 @@ function parseScorecardView(job: EvaluationJob): ScorecardView | null {
     },
     attestationQuote: attestation?.attestation_quote ?? "",
     sessionId: job.tee_session_id ?? receipt.session_id ?? "",
+    agentMetrics: evaluation.agent_metrics,
+    hasSlideArtifact: Boolean(evaluation.artifacts?.["slides.pptx"]?.size),
   };
 }
 
@@ -439,7 +455,9 @@ function SamplesPanel({ samples }: { samples: SampleView[] }) {
                 >
                   Held back by the leakage guard.
                   <br />
-                  Output referenced protected skill content.
+                  {s.leakageReasons.length > 0
+                    ? `Reasons: ${s.leakageReasons.join(", ")}`
+                    : "Output referenced protected skill content."}
                 </div>
               </div>
             )}
@@ -1052,10 +1070,7 @@ export function ScorecardScreen({ job, skill }: { job: EvaluationJob; skill: Dis
         <ScorecardProofFirst view={view} jobId={job.job_id} skillId={skill.skill_id} />
       ) : null}
 
-      {view.passed &&
-      (job.evaluation as { artifacts?: Record<string, { size?: number }> } | undefined)?.artifacts?.[
-        "slides.pptx"
-      ] ? (
+      {view.hasSlideArtifact ? (
         <div style={{ marginTop: 22 }}>
           <a
             href={`${API_URL}/v1/evaluations/${job.job_id}/artifacts/slides.pptx`}
@@ -1067,6 +1082,32 @@ export function ScorecardScreen({ job, skill }: { job: EvaluationJob; skill: Dis
           <p className="mono" style={{ fontSize: 11, color: "var(--mute)", marginTop: 8 }}>
             PPTX generated inside the TEE · exported after leakage guard
           </p>
+        </div>
+      ) : null}
+
+      {view.agentMetrics ? (
+        <div
+          style={{
+            marginTop: 18,
+            border: "1px solid var(--line)",
+            borderRadius: 12,
+            padding: 16,
+            background: "var(--card)",
+          }}
+        >
+          <h3 style={{ margin: "0 0 10px", fontSize: 14, fontWeight: 600 }}>Agent run metrics</h3>
+          <div className="mono" style={{ fontSize: 11.5, color: "var(--mute)", lineHeight: 1.7 }}>
+            {[
+              ["harness", view.agentMetrics.harness_mode ?? "builtin"],
+              ["tool_calls", String(view.agentMetrics.tool_calls ?? 0)],
+              ["iterations", String(view.agentMetrics.iterations_used ?? 0)],
+              ["artifact", view.agentMetrics.artifact_generated ? "slides.pptx" : "none"],
+            ].map(([k, v]) => (
+              <div key={k}>
+                {k}: {v}
+              </div>
+            ))}
+          </div>
         </div>
       ) : null}
 

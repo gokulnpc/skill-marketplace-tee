@@ -44,17 +44,35 @@ class InProcessModelClient:
         return {"message": data["choices"][0]["message"], "usage": data.get("usage")}
 
 
-@pytest.fixture
-def model_app():
-    from model_server.main import app as model_application
+class NearLikeModelClient(InProcessModelClient):
+    """Simulates NEAR Qwen3 returning prose instead of tool_calls."""
 
-    return model_application
+    def chat_completion_with_tools(self, messages, tools=None, temperature=0.0) -> dict:
+        return {
+            "message": {
+                "role": "assistant",
+                "content": "Analysis of private ordering markets and slide deck planning.",
+            },
+            "usage": {},
+        }
+
+    def chat_completion(self, messages, temperature=0.0, **kwargs) -> str:
+        import json
+
+        return json.dumps(
+            {
+                "title": "Private Ordering Markets",
+                "slides": [
+                    {"title": "Problem", "bullets": ["MEV and ordering guarantees"]},
+                    {"title": "Mechanism", "bullets": ["Incentive alignment for slide deck"]},
+                    {"title": "Takeaways", "bullets": ["Summary slide content"]},
+                ],
+            }
+        )
 
 
-@pytest.fixture
-def agent_client(model_app) -> TestClient:
+def _agent_test_client(model_client) -> TestClient:
     settings = Settings(runner_mode="mock", inference_provider="mock")
-    model_client = InProcessModelClient(model_app)
     service = SessionService(
         store=SessionStore(),
         tee=MockTeeAdapter(settings),
@@ -64,6 +82,25 @@ def agent_client(model_app) -> TestClient:
         model_client=model_client,
     )
     app.dependency_overrides[get_session_service] = lambda: service
-    client = TestClient(app)
+    return TestClient(app)
+
+
+@pytest.fixture
+def model_app():
+    from model_server.main import app as model_application
+
+    return model_application
+
+
+@pytest.fixture
+def agent_client(model_app) -> TestClient:
+    client = _agent_test_client(InProcessModelClient(model_app))
+    yield client
+    app.dependency_overrides.clear()
+
+
+@pytest.fixture
+def near_agent_client(model_app) -> TestClient:
+    client = _agent_test_client(NearLikeModelClient(model_app))
     yield client
     app.dependency_overrides.clear()

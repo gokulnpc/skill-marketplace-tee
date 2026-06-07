@@ -28,6 +28,9 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
+- **Ari slides hybrid pipeline:** Papers-zip evals use deterministic paper reads + single NEAR JSON call + PPTX generation instead of relying on OpenAI tool_calls (fixes 0% score / no artifact on NEAR Qwen3).
+- Slide-task scoring weights PPTX artifact presence; leakage guard approves export when artifact exists.
+- Scorecard shows slides.pptx download and agent metrics even when eval did not pass threshold.
 - Seller upload accepts multipart `.zip` packages; legacy JSON `skill_content` still supported.
 - `tee-runner` uses `AgentEvaluationService` instead of single-shot `InferenceService`.
 - Package hash is SHA-256 tree hash over zip contents (excludes `adapters/`).

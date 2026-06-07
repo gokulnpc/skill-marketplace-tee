@@ -3,10 +3,7 @@
 from __future__ import annotations
 
 import hashlib
-import json
-import logging
 import tempfile
-import time
 from pathlib import Path
 
 import httpx
@@ -18,34 +15,11 @@ from tee_runner.services.builtin_harness import (
     merge_papers_into_files,
     run_builtin_agent,
 )
+from tee_runner.services.slide_task_runner import run_slide_task
 from tee_runner.services.dataset_parser import parse_dataset
 from tee_runner.services.package_loader import parse_skill_package, resolve_knowledge_dirs
 from tee_runner.services.papers_zip import is_papers_zip
 from tee_runner.session.store import SessionRecord
-
-logger = logging.getLogger(__name__)
-
-DEBUG_LOG_PATH = Path(__file__).resolve().parents[4] / ".cursor" / "debug-563348.log"
-
-
-def _debug_log(message: str, data: dict, hypothesis_id: str) -> None:
-    # #region agent log
-    try:
-        payload = {
-            "sessionId": "563348",
-            "timestamp": int(time.time() * 1000),
-            "location": "agent_evaluation_service.py",
-            "message": message,
-            "data": data,
-            "hypothesisId": hypothesis_id,
-        }
-        DEBUG_LOG_PATH.parent.mkdir(parents=True, exist_ok=True)
-        with DEBUG_LOG_PATH.open("a", encoding="utf-8") as fh:
-            fh.write(json.dumps(payload) + "\n")
-    except OSError:
-        pass
-    logger.warning("%s %s", message, data)
-    # #endregion
 
 
 def _load_skill_content(pkg, slide_task: bool) -> str:
@@ -91,12 +65,7 @@ class AgentEvaluationService:
             with httpx.Client(timeout=2.0) as client:
                 response = client.get(f"{self._sandbox_client._base_url}/health")
                 return response.status_code == 200
-        except Exception as exc:
-            _debug_log(
-                "sandbox health check failed",
-                {"error": str(exc), "base_url": self._sandbox_client._base_url},
-                "A",
-            )
+        except Exception:
             return False
 
     def run_session_inference(self, record: SessionRecord) -> list[dict]:
@@ -127,17 +96,6 @@ class AgentEvaluationService:
             and sandbox_ready
             and evaluation_type == "agent"
             and slide_task
-        )
-        _debug_log(
-            "agent inference path",
-            {
-                "use_sandbox": use_sandbox,
-                "use_sandbox_for_agent": self._use_sandbox_for_agent,
-                "sandbox_ready": sandbox_ready,
-                "evaluation_type": evaluation_type,
-                "slide_task": slide_task,
-            },
-            "A",
         )
 
         workspace = Path(tempfile.mkdtemp(prefix=f"sv_{record.session_id}_"))
@@ -192,17 +150,28 @@ class AgentEvaluationService:
                         workspace=workspace,
                         slide_task=slide_task,
                     )
-                    with_skill_output, skill_metrics = run_builtin_agent(
-                        self._model_client,
-                        skill_content=skill_content,
-                        transcript=sample["content"],
-                        files=files,
-                        knowledge_dirs=knowledge_dirs,
-                        with_skill=True,
-                        evaluation_type=evaluation_type,
-                        max_iterations=max_iterations,
-                        workspace=workspace,
-                        slide_task=slide_task,
+                    with_skill_output, skill_metrics = (
+                        run_slide_task(
+                            self._model_client,
+                            skill_content=skill_content,
+                            transcript=sample["content"],
+                            files=files,
+                            knowledge_dirs=knowledge_dirs,
+                            workspace=workspace,
+                        )
+                        if slide_task and evaluation_type == "agent"
+                        else run_builtin_agent(
+                            self._model_client,
+                            skill_content=skill_content,
+                            transcript=sample["content"],
+                            files=files,
+                            knowledge_dirs=knowledge_dirs,
+                            with_skill=True,
+                            evaluation_type=evaluation_type,
+                            max_iterations=max_iterations,
+                            workspace=workspace,
+                            slide_task=slide_task,
+                        )
                     )
                     total_tool_calls += skill_metrics.tool_calls
                     total_iterations += skill_metrics.iterations
@@ -245,6 +214,8 @@ class AgentEvaluationService:
         record.agent_metrics["iterations_used"] = total_iterations
         record.agent_metrics["evaluation_type"] = evaluation_type
         record.agent_metrics["slide_task"] = slide_task
+        if slide_task and evaluation_type == "agent" and runtime == "builtin":
+            record.agent_metrics["harness_mode"] = "slide_hybrid"
         if record.artifacts_meta and "slides.pptx" in record.artifacts_meta:
             record.agent_metrics["artifact_generated"] = True
         record.skill_manifest = pkg.manifest

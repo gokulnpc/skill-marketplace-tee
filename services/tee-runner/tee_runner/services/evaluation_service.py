@@ -1,6 +1,7 @@
 from tee_runner.evaluation.scoring_pipeline import EvaluationSummary, evaluate_samples
 from tee_runner.services.dataset_parser import parse_evaluation_dataset
 from tee_runner.services.package_loader import parse_skill_package
+from tee_runner.services.papers_zip import is_papers_zip
 from tee_runner.session.store import SessionRecord
 
 
@@ -24,6 +25,7 @@ class EvaluationService:
             or dataset.evaluation_type
             or "redaction"
         )
+        slide_task = is_papers_zip(record.dataset_plaintext)
 
         return evaluate_samples(
             inference_results=record.inference_results,
@@ -31,4 +33,6 @@ class EvaluationService:
             skill_content=skill_content,
             weights=dataset.weights,
             evaluation_type=eval_type,
+            slide_task=slide_task,
+            artifacts_meta=record.artifacts_meta,
         )
