@@ -32,6 +32,12 @@ if [[ -z "${NEAR_API_KEY:-}" ]]; then
   exit 1
 fi
 
+export MODEL_MODE="${MODEL_MODE:-near_private}"
+export INFERENCE_PROVIDER="${INFERENCE_PROVIDER:-near_private}"
+export NEAR_COMPLETIONS_BASE="${NEAR_COMPLETIONS_BASE:-https://qwen3-30b.completions.near.ai/v1}"
+export NEAR_MODEL_SLUG="${NEAR_MODEL_SLUG:-qwen3-30b}"
+export MODEL_SERVER_URL="${MODEL_SERVER_URL:-http://127.0.0.1:${MODEL_PORT}}"
+
 log "Starting sandbox-manager on :${SANDBOX_PORT}..."
 export SANDBOX_PORT
 export MODEL_PROXY_URL="${MODEL_PROXY_URL:-http://127.0.0.1:${TEE_PORT}}"
@@ -44,9 +50,26 @@ until curl -sf "http://127.0.0.1:${SANDBOX_PORT}/health" >/dev/null; do
 done
 log "Sandbox-manager is ready"
 
-log "Starting model-server on :${MODEL_PORT} (MODEL_MODE=${MODEL_MODE:-near_private})..."
+log "Starting model-server on :${MODEL_PORT} (MODEL_MODE=${MODEL_MODE})..."
 uvicorn model_server.main:app --host 127.0.0.1 --port "${MODEL_PORT}" &
 MODEL_PID=$!
+
+log "Waiting for model-server on :${MODEL_PORT}..."
+for _ in $(seq 1 90); do
+  if curl -sf "http://127.0.0.1:${MODEL_PORT}/health" >/dev/null; then
+    log "Model-server is ready"
+    break
+  fi
+  if ! kill -0 "${MODEL_PID}" 2>/dev/null; then
+    log "ERROR: model-server exited during startup (check MODEL_MODE/NEAR_API_KEY)"
+    exit 1
+  fi
+  sleep 1
+done
+if ! curl -sf "http://127.0.0.1:${MODEL_PORT}/health" >/dev/null; then
+  log "ERROR: model-server did not become healthy within 90s"
+  exit 1
+fi
 
 log "Starting tee-runner on :${TEE_PORT} (RUNNER_MODE=${RUNNER_MODE:-dstack})..."
 export SANDBOX_MANAGER_URL="${SANDBOX_MANAGER_URL:-http://127.0.0.1:${SANDBOX_PORT}}"
