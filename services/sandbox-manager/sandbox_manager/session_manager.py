@@ -8,21 +8,11 @@ import os
 import shutil
 import tempfile
 import zipfile
-from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-from sandbox_manager.agent_harness import run_agent_harness
 from sandbox_manager.harness_runner import run_harness
-
-
-@dataclass
-class SessionSandbox:
-    session_id: str
-    root: Path
-    manifest: dict[str, Any] = field(default_factory=dict)
-    model_proxy_url: str = ""
-    session_token: str = ""
+from sandbox_manager.types import SessionSandbox
 
 
 class SandboxStore:
@@ -124,6 +114,8 @@ class SandboxStore:
         sample_path = session.root / "dataset" / f"{sample_id}.json"
         sample_path.write_text(json.dumps({"id": sample_id, "content": transcript}))
         if slide_task or session.manifest.get("evaluation_type") == "agent":
+            from sandbox_manager.agent_harness import run_agent_harness
+
             return run_agent_harness(
                 session,
                 transcript=transcript,

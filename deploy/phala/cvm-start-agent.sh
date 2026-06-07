@@ -41,14 +41,31 @@ export MODEL_SERVER_URL="${MODEL_SERVER_URL:-http://127.0.0.1:${MODEL_PORT}}"
 log "Starting sandbox-manager on :${SANDBOX_PORT}..."
 export SANDBOX_PORT
 export MODEL_PROXY_URL="${MODEL_PROXY_URL:-http://127.0.0.1:${TEE_PORT}}"
-uvicorn sandbox_manager.main:app --host 127.0.0.1 --port "${SANDBOX_PORT}" &
-SANDBOX_PID=$!
+SANDBOX_PID=""
+if [[ "${USE_SANDBOX_FOR_AGENT:-false}" == "true" ]]; then
+  uvicorn sandbox_manager.main:app --host 127.0.0.1 --port "${SANDBOX_PORT}" &
+  SANDBOX_PID=$!
 
-log "Waiting for sandbox-manager on :${SANDBOX_PORT}..."
-until curl -sf "http://127.0.0.1:${SANDBOX_PORT}/health" >/dev/null; do
-  sleep 1
-done
-log "Sandbox-manager is ready"
+  log "Waiting for sandbox-manager on :${SANDBOX_PORT}..."
+  for _ in $(seq 1 60); do
+    if curl -sf "http://127.0.0.1:${SANDBOX_PORT}/health" >/dev/null; then
+      log "Sandbox-manager is ready"
+      break
+    fi
+    if ! kill -0 "${SANDBOX_PID}" 2>/dev/null; then
+      log "ERROR: sandbox-manager exited during startup"
+      exit 1
+    fi
+    sleep 1
+  done
+  if ! curl -sf "http://127.0.0.1:${SANDBOX_PORT}/health" >/dev/null; then
+    log "ERROR: sandbox-manager did not become healthy within 60s"
+    exit 1
+  fi
+else
+  log "Skipping sandbox-manager (USE_SANDBOX_FOR_AGENT=false)"
+  unset SANDBOX_MANAGER_URL
+fi
 
 log "Starting model-server on :${MODEL_PORT} (MODEL_MODE=${MODEL_MODE})..."
 uvicorn model_server.main:app --host 127.0.0.1 --port "${MODEL_PORT}" &
@@ -72,9 +89,13 @@ if ! curl -sf "http://127.0.0.1:${MODEL_PORT}/health" >/dev/null; then
 fi
 
 log "Starting tee-runner on :${TEE_PORT} (RUNNER_MODE=${RUNNER_MODE:-dstack})..."
-export SANDBOX_MANAGER_URL="${SANDBOX_MANAGER_URL:-http://127.0.0.1:${SANDBOX_PORT}}"
+if [[ -n "${SANDBOX_PID}" ]]; then
+  export SANDBOX_MANAGER_URL="${SANDBOX_MANAGER_URL:-http://127.0.0.1:${SANDBOX_PORT}}"
+else
+  unset SANDBOX_MANAGER_URL
+fi
 uvicorn tee_runner.main:app --host 0.0.0.0 --port "${TEE_PORT}" &
 TEE_PID=$!
 
-trap 'kill ${SANDBOX_PID} ${MODEL_PID} ${TEE_PID} 2>/dev/null || true' EXIT
+trap 'kill ${SANDBOX_PID:+"$SANDBOX_PID"} ${MODEL_PID} ${TEE_PID} 2>/dev/null || true' EXIT
 wait "${TEE_PID}"

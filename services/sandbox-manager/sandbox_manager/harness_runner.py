@@ -11,7 +11,7 @@ from typing import Any
 
 import httpx
 
-from sandbox_manager.session_manager import SessionSandbox
+from sandbox_manager.types import SessionSandbox
 
 
 def _skill_root(session: SessionSandbox) -> Path:

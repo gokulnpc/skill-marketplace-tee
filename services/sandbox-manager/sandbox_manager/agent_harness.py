@@ -5,9 +5,11 @@ from __future__ import annotations
 import json
 import re
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from sandbox_manager.session_manager import SessionSandbox
+if TYPE_CHECKING:
+    from sandbox_manager.types import SessionSandbox
+
 from sandbox_manager.tools.slides import run_generate_slides_tool
 
 
